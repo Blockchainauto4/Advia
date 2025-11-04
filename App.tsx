@@ -126,38 +126,45 @@ const BlogPage = () => (
     </main>
 );
 
-const ContatoPage = () => (
-    <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Entre em Contato</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <form className="space-y-4">
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome</label>
-                        <input type="text" id="name" name="name" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Seu nome completo" />
+const ContatoPage = () => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        alert('Obrigado pelo contato! Em uma aplicação real, sua mensagem seria enviada agora.');
+    };
+
+    return (
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+                <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Entre em Contato</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome</label>
+                            <input type="text" id="name" name="name" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Seu nome completo" required />
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="email" name="email" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="seu@email.com" required />
+                        </div>
+                        <div>
+                            <label htmlFor="message" className="block text-sm font-medium text-gray-700">Mensagem</label>
+                            <textarea id="message" name="message" rows={4} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Sua mensagem..." required></textarea>
+                        </div>
+                        <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Enviar Mensagem
+                        </button>
+                    </form>
+                    <div className="text-gray-700">
+                        <h3 className="text-xl font-semibold text-indigo-700 mb-3">Informações de Contato</h3>
+                        <p className="mb-2"><strong>Email:</strong> contato@advocaciaai.com.br</p>
+                        <p className="mb-2"><strong>Telefone:</strong> (XX) XXXX-XXXX</p>
+                        <p>Estamos disponíveis para responder suas perguntas e ouvir suas sugestões. Sua opinião é muito importante para nós!</p>
                     </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="email" name="email" className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="seu@email.com" />
-                    </div>
-                    <div>
-                        <label htmlFor="message" className="block text-sm font-medium text-gray-700">Mensagem</label>
-                        <textarea id="message" name="message" rows={4} className="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Sua mensagem..."></textarea>
-                    </div>
-                    <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Enviar Mensagem
-                    </button>
-                </form>
-                <div className="text-gray-700">
-                    <h3 className="text-xl font-semibold text-indigo-700 mb-3">Informações de Contato</h3>
-                    <p className="mb-2"><strong>Email:</strong> contato@advocaciaai.com.br</p>
-                    <p className="mb-2"><strong>Telefone:</strong> (XX) XXXX-XXXX</p>
-                    <p>Estamos disponíveis para responder suas perguntas e ouvir suas sugestões. Sua opinião é muito importante para nós!</p>
                 </div>
             </div>
-        </div>
-    </main>
-);
+        </main>
+    );
+};
 
 const NavLink: React.FC<{
     onClick: () => void;
