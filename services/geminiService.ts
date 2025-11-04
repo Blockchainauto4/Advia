@@ -1,14 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
 // A `systemInstruction` e o `responseSchema` agora são passados como argumentos
 // para tornar a função reutilizável para diferentes tipos de documentos.
 
@@ -17,6 +9,14 @@ export const generateDocumentContent = async (
   systemInstruction: string,
   responseSchema: any // eslint-disable-line @typescript-eslint/no-explicit-any
 ): Promise<{ [key: string]: string; }> => {
+  const API_KEY = process.env.API_KEY;
+
+  if (!API_KEY) {
+    throw new Error("A variável de ambiente API_KEY não está configurada.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+
   if (!prompt || !systemInstruction || !responseSchema) {
     throw new Error("Prompt, system instruction, and response schema are required.");
   }
