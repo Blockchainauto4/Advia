@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { FormData } from './types';
 import { generateDocumentContent } from './services/geminiService';
@@ -8,7 +7,7 @@ import { documentConfigs, DocumentConfig } from './documentConfigs';
 // --- ICONS ---
 const SparklesIcon: React.FC<{className: string}> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.863 2.863l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.863 2.863l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.863-2.863l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036a6.75 6.75 0 005.156 5.156l1.036.258a.75.75 0 010 1.456l-1.036.258a6.75 6.75 0 00-5.156 5.156l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a6.75 6.75 0 00-5.156-5.156l-1.036-.258a.75.75 0 010-1.456l1.036-.258a6.75 6.75 0 005.156-5.156l.258-1.036A.75.75 0 0118 1.5z" clipRule="evenodd" />
+    <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.863 2.863l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.863 2.863l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.863-2.863l-2.846-.813a.75.75 0 010-1.442l2.846.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036a6.75 6.75 0 005.156 5.156l1.036.258a.75.75 0 010 1.456l-1.036.258a6.75 6.75 0 00-5.156 5.156l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a6.75 6.75 0 00-5.156-5.156l-1.036-.258a.75.75 0 010-1.456l1.036-.258a6.75 6.75 0 005.156-5.156l.258-1.036A.75.75 0 0118 1.5z" clipRule="evenodd" />
   </svg>
 );
 const ClipboardIcon: React.FC<{className: string}> = ({ className }) => (
@@ -64,8 +63,32 @@ const LinkedInIcon: React.FC<{className: string}> = ({className}) => (
     </svg>
 );
 
-// --- PAGE COMPONENTS ---
+// --- UI COMPONENTS ---
+const SkeletonLoader = () => (
+  <div className="animate-pulse space-y-5 p-2">
+    <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+    <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+    <div className="space-y-3 pt-4">
+        <div className="h-3 bg-slate-200 rounded w-full"></div>
+        <div className="h-3 bg-slate-200 rounded w-full"></div>
+        <div className="h-3 bg-slate-200 rounded w-5/6"></div>
+    </div>
+    <div className="space-y-3 pt-4">
+        <div className="h-3 bg-slate-200 rounded w-full"></div>
+        <div className="h-3 bg-slate-200 rounded w-full"></div>
+    </div>
+  </div>
+);
 
+const EmptyStateMessage = () => (
+  <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 p-4">
+    <SparklesIcon className="w-16 h-16 mb-4 text-slate-300" />
+    <h3 className="text-lg font-semibold text-slate-600">Seu documento aparecerá aqui</h3>
+    <p className="text-sm">Preencha os campos à esquerda e clique em "Gerar" para criar seu documento com a ajuda da IA.</p>
+  </div>
+);
+
+// --- PAGE COMPONENTS ---
 const QuemSomosPage = () => (
     <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
@@ -160,7 +183,7 @@ const Header: React.FC<{ setPage: (page: string) => void; currentPage: string }>
     };
 
     return (
-        <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg sticky top-0 z-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex-shrink-0">
@@ -203,44 +226,50 @@ const Header: React.FC<{ setPage: (page: string) => void; currentPage: string }>
 };
 
 
-const Footer = ({ setPage }: { setPage: (page: string) => void }) => (
-    <footer className="bg-slate-800 text-gray-300">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">advocaciaai.com.br</h3>
-                    <p className="text-sm">Potencializando o direito com inteligência artificial.</p>
-                </div>
-                <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">Navegação</h3>
-                    <ul className="space-y-2 text-sm">
-                        <li><button onClick={() => setPage('home')} className="hover:text-indigo-400 transition-colors">Gerador IA</button></li>
-                        <li><button onClick={() => setPage('quem-somos')} className="hover:text-indigo-400 transition-colors">Quem Somos</button></li>
-                        <li><button onClick={() => setPage('blog')} className="hover:text-indigo-400 transition-colors">Blog</button></li>
-                        <li><button onClick={() => setPage('contato')} className="hover:text-indigo-400 transition-colors">Contato</button></li>
-                    </ul>
-                </div>
-                <div>
-                     <h3 className="text-lg font-semibold text-white mb-4">Legal</h3>
-                    <ul className="space-y-2 text-sm">
-                        <li><a href="#" className="hover:text-indigo-400 transition-colors">Termos de Serviço</a></li>
-                        <li><a href="#" className="hover:text-indigo-400 transition-colors">Política de Privacidade</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">Siga-nos</h3>
-                    <div className="flex space-x-4">
-                        <a href="#" aria-label="Twitter" className="text-gray-400 hover:text-indigo-400"><TwitterIcon className="h-6 w-6" /></a>
-                        <a href="#" aria-label="LinkedIn" className="text-gray-400 hover:text-indigo-400"><LinkedInIcon className="h-6 w-6" /></a>
+const Footer = ({ setPage }: { setPage: (page: string) => void }) => {
+    const handlePlaceholderClick = (linkName: string) => {
+        alert(`${linkName} - Página ou link em construção.`);
+    };
+    
+    return (
+        <footer className="bg-slate-800 text-gray-300">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white mb-4">advocaciaai.com.br</h3>
+                        <p className="text-sm">Potencializando o direito com inteligência artificial.</p>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-white mb-4">Navegação</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><button onClick={() => setPage('home')} className="hover:text-indigo-400 transition-colors">Gerador IA</button></li>
+                            <li><button onClick={() => setPage('quem-somos')} className="hover:text-indigo-400 transition-colors">Quem Somos</button></li>
+                            <li><button onClick={() => setPage('blog')} className="hover:text-indigo-400 transition-colors">Blog</button></li>
+                            <li><button onClick={() => setPage('contato')} className="hover:text-indigo-400 transition-colors">Contato</button></li>
+                        </ul>
+                    </div>
+                    <div>
+                         <h3 className="text-lg font-semibold text-white mb-4">Legal</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><button onClick={() => handlePlaceholderClick('Termos de Serviço')} className="hover:text-indigo-400 transition-colors text-left">Termos de Serviço</button></li>
+                            <li><button onClick={() => handlePlaceholderClick('Política de Privacidade')} className="hover:text-indigo-400 transition-colors text-left">Política de Privacidade</button></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-white mb-4">Siga-nos</h3>
+                        <div className="flex space-x-4">
+                            <button onClick={() => handlePlaceholderClick('Twitter')} aria-label="Twitter" className="text-gray-400 hover:text-indigo-400"><TwitterIcon className="h-6 w-6" /></button>
+                            <button onClick={() => handlePlaceholderClick('LinkedIn')} aria-label="LinkedIn" className="text-gray-400 hover:text-indigo-400"><LinkedInIcon className="h-6 w-6" /></button>
+                        </div>
                     </div>
                 </div>
+                <div className="mt-8 border-t border-gray-700 pt-4 text-center text-sm">
+                    <p>&copy; {new Date().getFullYear()} advocaciaai.com.br. Todos os direitos reservados.</p>
+                </div>
             </div>
-            <div className="mt-8 border-t border-gray-700 pt-4 text-center text-sm">
-                <p>&copy; {new Date().getFullYear()} advocaciaai.com.br. Todos os direitos reservados.</p>
-            </div>
-        </div>
-    </footer>
-);
+        </footer>
+    );
+};
 
 // --- MAIN APP COMPONENT ---
 
@@ -270,10 +299,11 @@ const InputField: React.FC<InputFieldProps> = ({ label, id, value, onChange, pla
 
 export default function App() {
   const [page, setPage] = useState('home');
-  const [docType, setDocType] = useState<string>(documentConfigs[0].value);
+  const [docType, setDocType] = useState<string>(documentConfigs[1].value);
   const [prompt, setPrompt] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isInitialState, setIsInitialState] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState<string>('');
   const [saveSuccess, setSaveSuccess] = useState<string>('');
@@ -297,13 +327,13 @@ export default function App() {
       if (savedData) {
         const { savedDocType, savedFormData, savedPrompt } = JSON.parse(savedData);
         const config = documentConfigs.find(d => d.value === savedDocType);
-        if (config) {
+        if (config && savedPrompt) { // Only load if there is saved data
           setDocType(savedDocType);
-          // Ensure all fields from the config exist in the form data
           const initialData = getInitialFormData(config);
           const loadedData = { ...initialData, ...(savedFormData || {}) };
           setFormData(loadedData);
           setPrompt(savedPrompt || '');
+          setIsInitialState(false);
         } else {
            setFormData(getInitialFormData(currentConfig));
         }
@@ -351,6 +381,7 @@ export default function App() {
     setPrompt('');
     setFormData(getInitialFormData(newConfig));
     setError(null);
+    setIsInitialState(true);
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -376,6 +407,7 @@ export default function App() {
         ...prev,
         ...result,
       }));
+      setIsInitialState(false);
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro desconhecido.');
     } finally {
@@ -402,6 +434,7 @@ export default function App() {
     setPrompt('');
     setError(null);
     localStorage.removeItem('legalDocumentData');
+    setIsInitialState(true);
      if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -564,11 +597,11 @@ export default function App() {
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg flex flex-col h-full min-h-[600px]">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-3 mb-4 gap-4">
                   <h2 className="text-xl font-semibold text-gray-800">Resultado</h2>
-                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button 
                         onClick={handleSpeak}
                         className={`flex items-center justify-center text-sm font-medium py-2 px-3 rounded-md transition duration-150 ${isSpeaking ? 'bg-red-200 hover:bg-red-300 text-red-800' : 'bg-violet-100 hover:bg-violet-200 text-violet-700'}`}
-                        disabled={!formattedDocumentText.trim() || isLoading}
+                        disabled={!formattedDocumentText.trim() || isLoading || isInitialState}
                         aria-label={isSpeaking ? "Parar leitura" : "Ouvir texto"}
                     >
                         {isSpeaking ? (
@@ -581,19 +614,18 @@ export default function App() {
                             </>
                         )}
                     </button>
-                    <button onClick={handleSaveDraft} className="flex items-center justify-center text-sm bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-3 rounded-md transition duration-150" aria-label="Salvar rascunho">
+                    <button onClick={handleSaveDraft} disabled={isInitialState || isLoading} className="flex items-center justify-center text-sm bg-green-100 hover:bg-green-200 text-green-700 font-medium py-2 px-3 rounded-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Salvar rascunho">
                         <SaveIcon className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Salvar</span>
                     </button>
-                    <button onClick={handleExportPDF} className="flex items-center justify-center text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-3 rounded-md transition duration-150" aria-label="Exportar para PDF">
+                    <button onClick={handleExportPDF} disabled={isInitialState || isLoading} className="flex items-center justify-center text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-3 rounded-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Exportar para PDF">
                         <ArrowDownTrayIcon className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">PDF</span>
                     </button>
-                    <button onClick={handleCopy} className="flex items-center justify-center text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 rounded-md transition duration-150 border border-gray-300" aria-label="Copiar texto">
+                    <button onClick={handleCopy} disabled={isInitialState || isLoading} className="flex items-center justify-center text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 rounded-md transition duration-150 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Copiar texto">
                       <ClipboardIcon className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Copiar</span>
                     </button>
-                     <button onClick={handleClear} className="flex items-center justify-center text-sm bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-3 rounded-md transition duration-150" aria-label="Limpar formulário">
+                     <button onClick={handleClear} disabled={isLoading} className="flex items-center justify-center text-sm bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-3 rounded-md transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Limpar formulário">
                       <TrashIcon className="w-4 h-4 mr-0 sm:mr-2"/><span className="hidden sm:inline">Limpar</span>
                     </button>
-                    
                   </div>
                 </div>
                  <div className="relative flex-grow">
@@ -603,7 +635,13 @@ export default function App() {
                       </div>
                     )}
                     <div className="bg-slate-50 p-4 rounded-md flex-grow overflow-y-auto border border-gray-200 h-full absolute inset-0">
-                      <pre className="whitespace-pre-wrap text-xs sm:text-sm font-sans text-gray-800">{formattedDocumentText}</pre>
+                      {isLoading ? (
+                          <SkeletonLoader />
+                      ) : isInitialState ? (
+                          <EmptyStateMessage />
+                      ) : (
+                          <pre className="whitespace-pre-wrap text-xs sm:text-sm font-sans text-gray-800">{formattedDocumentText}</pre>
+                      )}
                     </div>
                  </div>
               </div>
