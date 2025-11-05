@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path fill-rule='evenodd' d='M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.863 2.863l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.863 2.863l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.863-2.863l-2.846-.813a.75.75 0 010-1.442l2.846.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036a6.75 6.75 0 005.156 5.156l1.036.258a.75.75 0 010 1.456l-1.036.258a6.75 6.75 0 00-5.156 5.156l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a6.75 6.75 0 00-5.156-5.156l-1.036-.258a.75.75 0 010-1.456l1.036-.258a6.75 6.75 0 005.156-5.156l.258-1.036A.75.75 0 0118 1.5z' clip-rule='evenodd' /></svg>" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path fill-rule='evenodd' d='M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.863 2.863l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.863 2.863l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.863-2.863l-2.846-.813a.75.75 0 010-1.442l2.846.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036a6.75 6.75 0 005.156 5.156l1.036.258a.75.75 0 010 1.456l-1.036.258a6.75 6.75 0 00-5.156 5.156l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a6.75 6.75 0 00-5.156-5.156l-1.036-.258a.75.75 0 010-1.456l1.036.258a6.75 6.75 0 005.156-5.156l.258-1.036A.75.75 0 0118 1.5z' clip-rule='evenodd' /></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="keywords" content="advocacia, ai, inteligência artificial, jurídico, parecer, petição, contrato, advogado, direito, automação" />
+    <meta name="description" content="Converse com assistentes de IA especializados em Direito Cível, Trabalhista, Penal e mais. Obtenha respostas rápidas e precisas para suas questões jurídicas." />
+    <meta name="keywords" content="chatbot, juridico, ai, inteligencia artificial, advogado, direito, assistente virtual, civel, trabalhista, penal, tributario" />
     <meta name="author" content="advocaciaai.com.br" />
-    <title>AdvocaciaAI | Gerador de Documentos Jurídicos com IA</title>
+    <title>AdvocaciaAI: Seu Assistente Jurídico com IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* Custom scrollbar for better aesthetics */
@@ -15,14 +16,14 @@
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #e2e8f0; /* bg-slate-200 */
       }
       ::-webkit-scrollbar-thumb {
-        background: #888;
+        background: #94a3b8; /* bg-slate-400 */
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: #64748b; /* bg-slate-500 */
       }
     </style>
   <script type="importmap">
@@ -38,9 +39,8 @@
 }
 </script>
 </head>
-  <body class="bg-gray-100">
+  <body class="bg-slate-100">
     <div id="root"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

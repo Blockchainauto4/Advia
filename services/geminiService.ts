@@ -1,47 +1,71 @@
+import { GoogleGenAI, Chat, GenerateContentRequest } from "@google/genai";
 
-import { GoogleGenAI, Type } from "@google/genai";
+export async function* getChatStream(
+  history: GenerateContentRequest['contents'],
+  newMessage: string,
+  systemInstruction: string
+): AsyncGenerator<string> {
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+        throw new Error("A variável de ambiente API_KEY não está configurada.");
+    }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-// A `systemInstruction` e o `responseSchema` agora são passados como argumentos
-// para tornar a função reutilizável para diferentes tipos de documentos.
-
-export const generateDocumentContent = async (
-  prompt: string,
-  systemInstruction: string,
-  responseSchema: any // eslint-disable-line @typescript-eslint/no-explicit-any
-): Promise<{ [key: string]: string; }> => {
-  const API_KEY = process.env.API_KEY;
-
-  if (!API_KEY) {
-    throw new Error("A variável de ambiente API_KEY não está configurada.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-  if (!prompt || !systemInstruction || !responseSchema) {
-    throw new Error("Prompt, system instruction, and response schema are required.");
-  }
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-        temperature: 0.5,
-      },
+    // The history is already formatted by the App component
+    const chat: Chat = ai.chats.create({
+        model: 'gemini-2.5-pro',
+        config: {
+            systemInstruction,
+            temperature: 0.7,
+        },
+        history,
     });
 
-    const jsonText = response.text.trim();
-    const parsedData = JSON.parse(jsonText);
+    try {
+      const responseStream = await chat.sendMessageStream({ message: newMessage });
 
-    return parsedData;
-  } catch (error) {
-    console.error("Error generating content from Gemini API:", error);
-    if (error instanceof Error) {
-        throw new Error(`Falha ao gerar conteúdo: ${error.message}. Verifique o console para mais detalhes.`);
+      for await (const chunk of responseStream) {
+          yield chunk.text;
+      }
+    } catch (error) {
+        console.error("Error streaming content from Gemini API:", error);
+        if (error instanceof Error) {
+            throw new Error(`Falha ao gerar conteúdo: ${error.message}.`);
+        }
+        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
     }
-    throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
-  }
-};
+}
+
+export async function* generateDocument(
+    prompt: string,
+    systemInstruction: string,
+    responseSchema: any // eslint-disable-line @typescript-eslint/no-explicit-any
+): AsyncGenerator<string> {
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+        throw new Error("A variável de ambiente API_KEY não está configurada.");
+    }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema,
+                temperature: 0.5,
+            },
+        });
+        
+        yield response.text;
+
+    } catch (error) {
+        console.error("Error generating document from Gemini API:", error);
+        if (error instanceof Error) {
+            throw new Error(`Falha ao gerar documento: ${error.message}.`);
+        }
+        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
+    }
+}
