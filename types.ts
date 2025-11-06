@@ -1,16 +1,20 @@
+// types.ts
 import React from 'react';
 
+// User and Authentication
 export interface User {
+  id: string;
   name: string;
   email: string;
   photoUrl?: string;
-  subscription?: {
-    planId: string;
-    trialEnds: string;
+  subscription: {
+    planId: string | null;
+    status: 'active' | 'inactive' | 'trialing';
+    endDate: string | null;
   };
 }
 
-// FIX: Add Plan interface to be used across the application.
+// Subscription Plans
 export interface Plan {
   id: string;
   name: string;
@@ -21,6 +25,7 @@ export interface Plan {
   trialDays: number;
 }
 
+// Chat
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
@@ -40,32 +45,40 @@ export interface Assistant {
   systemInstruction: string;
 }
 
-export type FormData = {
+// Document Generator
+export interface FormData {
   [key: string]: string;
-};
-
-export interface SocialPost {
-    id: string;
-    theme: string;
-    platform: string;
-    tone: string;
-    title: string;
-    script?: string; // Optional for single posts
-    slides?: { // Optional for carousel posts
-        title: string;
-        body: string;
-        imageSuggestion: string;
-    }[];
-    articleBody?: string; // Optional for blog articles
-    visualSuggestions: string;
-    hashtags: string[];
-    videoUrl?: string; // Optional field for generated video
-    videoStatus?: 'idle' | 'generating' | 'ready' | 'failed';
-    videoGenerationError?: string | null;
-    status?: 'draft' | 'posting' | 'posted' | 'failed';
-    statusMessage?: string; // For success (e.g., URL) or error messages
 }
 
+// Marketing
+export interface SocialPost {
+  id: string;
+  theme: string;
+  platform: string;
+  tone: string;
+  status: 'draft' | 'published' | 'failed';
+  title: string;
+  script?: string;
+  slides?: { title: string; body: string; imageSuggestion: string }[];
+  articleBody?: string;
+  visualSuggestions: string;
+  hashtags: string[];
+  videoUrl?: string;
+  videoStatus?: 'idle' | 'generating' | 'ready' | 'failed';
+  videoGenerationError?: string | null;
+}
+
+export interface Campaign {
+    id: string;
+    name: string;
+    messageTemplate: string;
+    recipientCount: number;
+    status: 'draft' | 'sending' | 'sent' | 'failed';
+    createdAt: string;
+    scheduledAt?: string;
+}
+
+// Safety Camera
 export interface SafetyEvent {
   type: 'plate' | 'infraction' | 'info';
   description: string;
@@ -73,17 +86,33 @@ export interface SafetyEvent {
   frameDataUrl: string;
 }
 
+// Leads
 export type LeadStatus = 'Novo' | 'Contatado' | 'Qualificado' | 'Perdido';
 
 export interface Lead {
   id: string;
   name: string;
-  email: string;
+  address?: string;
   phone?: string;
+  website?: string;
+  mapsUrl?: string;
   status: LeadStatus;
   createdAt: string;
 }
 
+// Contract Consultant
+export interface GeneratedClause {
+    id: string;
+    type: string;
+    text: string;
+}
+
+export interface NegotiationMessage {
+    role: 'user' | 'model';
+    content: string;
+}
+
+// Blog
 export interface BlogPost {
   id: string;
   title: string;
@@ -93,12 +122,13 @@ export interface BlogPost {
   content: React.ReactNode;
 }
 
-export interface Campaign {
-  id: string;
-  name: string;
-  messageTemplate: string;
-  status: 'draft' | 'sending' | 'sent' | 'failed';
-  recipientCount: number;
-  createdAt: string;
-  scheduledAt?: string;
+// App-level types
+export interface ToastMessage {
+  id?: number;
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
+
+export interface NavigationContextType {
+  navigate: (path: string) => void;
 }

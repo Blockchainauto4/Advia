@@ -1,132 +1,109 @@
 // services/authService.ts
 import type { User } from '../types.ts';
 
-// ATENÇÃO: Este é um serviço de simulação.
-// Em uma aplicação real, a autenticação deve ser feita em um backend seguro.
-// As senhas NUNCA devem ser armazenadas no localStorage.
-
 const USERS_KEY = 'advocaciaai_users';
 const CURRENT_USER_KEY = 'advocaciaai_current_user';
 
 const getUsers = (): User[] => {
-  const usersJson = localStorage.getItem(USERS_KEY);
-  return usersJson ? JSON.parse(usersJson) : [];
+    try {
+        const usersJson = localStorage.getItem(USERS_KEY);
+        return usersJson ? JSON.parse(usersJson) : [];
+    } catch (e) {
+        return [];
+    }
 };
 
-const saveUsers = (users: User[]) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+const saveUsers = (users: User[]): void => {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
 export const authService = {
-  register: (name: string, email: string, password: string): Promise<User> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const users = getUsers();
-        if (users.some(user => user.email === email)) {
-          reject(new Error('Este e-mail já está cadastrado.'));
-          return;
-        }
-        // Em um app real, a senha seria hasheada no backend.
-        // Aqui, apenas os dados não sensíveis são salvos.
-        const newUser: User = { name, email };
-        users.push(newUser);
-        saveUsers(users);
-        resolve(newUser);
-      }, 500);
-    });
-  },
+    register: (name: string, email: string, password_unused: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const users = getUsers();
+                if (users.some(u => u.email === email)) {
+                    return reject(new Error('Um usuário com este e-mail já existe.'));
+                }
+                const newUser: User = {
+                    id: Date.now().toString(),
+                    name,
+                    email,
+                    subscription: {
+                        planId: 'free_trial',
+                        status: 'active',
+                        endDate: null,
+                    },
+                };
+                users.push(newUser);
+                saveUsers(users);
+                resolve();
+            }, 500);
+        });
+    },
 
-  login: (email: string, password: string): Promise<User> => {
-     return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const users = getUsers();
-            const user = users.find(u => u.email === email);
-            // Simula a verificação de senha. Em um app real, isso seria feito no backend.
-            if (user) {
-                localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-                resolve(user);
-            } else {
-                reject(new Error('E-mail ou senha inválidos.'));
+    login: (email: string, password_unused: string): Promise<User> => {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const users = getUsers();
+                const user = users.find(u => u.email === email);
+                if (user) {
+                    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+                    resolve(user);
+                } else {
+                    reject(new Error('Credenciais inválidas.'));
+                }
+            }, 500);
+        });
+    },
+
+    logout: (): void => {
+        localStorage.removeItem(CURRENT_USER_KEY);
+    },
+
+    getCurrentUser: (): User | null => {
+        try {
+            const userJson = localStorage.getItem(CURRENT_USER_KEY);
+            return userJson ? JSON.parse(userJson) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    updateUserDetails: (email: string, details: Partial<User>): User | null => {
+        const users = getUsers();
+        const userIndex = users.findIndex(u => u.email === email);
+        if (userIndex > -1) {
+            const updatedUser = { ...users[userIndex], ...details };
+            users[userIndex] = updatedUser;
+            saveUsers(users);
+
+            // Also update current user if they are logged in
+            const currentUser = authService.getCurrentUser();
+            if (currentUser && currentUser.email === email) {
+                localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
             }
-        }, 500);
-     });
-  },
-
-  requestPasswordReset: (email: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const users = getUsers();
-        const userExists = users.some(u => u.email === email);
-        console.log(`[SIMULAÇÃO] Solicitação de redefinição de senha para ${email}. Usuário existe: ${userExists}. Um e-mail seria enviado se o usuário existir.`);
-        // Resolve em ambos os casos para não revelar se um e-mail está cadastrado.
-        resolve();
-      }, 750);
-    });
-  },
-
-  logout: (): void => {
-    localStorage.removeItem(CURRENT_USER_KEY);
-  },
-
-  getCurrentUser: (): User | null => {
-    const userJson = localStorage.getItem(CURRENT_USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
-  },
-
-  updateUserSubscription: (email: string, planId: string, trialDays: number): User | null => {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.email === email);
-    if (userIndex === -1) return null;
-
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
-
-    const updatedUser: User = {
-        ...users[userIndex],
-        subscription: {
-            planId,
-            trialEnds: trialEndDate.toISOString(),
+            return updatedUser;
         }
-    };
-    
-    users[userIndex] = updatedUser;
-    saveUsers(users);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-    
-    return updatedUser;
-  },
+        return null;
+    },
 
-  updateUserDetails: (email: string, details: Partial<Pick<User, 'name' | 'photoUrl'>>): User | null => {
-    const users = getUsers();
-    const userIndex = users.findIndex(u => u.email === email);
-    if (userIndex === -1) return null;
+    requestPasswordReset: (email: string): Promise<void> => {
+        return new Promise((resolve) => {
+            console.log(`[SIMULAÇÃO] Enviando link de recuperação de senha para: ${email}`);
+            setTimeout(resolve, 1000);
+        });
+    },
 
-    const updatedUser = { ...users[userIndex], ...details };
-    
-    users[userIndex] = updatedUser;
-    saveUsers(users);
-
-    const currentUser = authService.getCurrentUser();
-    if(currentUser && currentUser.email === email) {
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-    }
-    
-    return updatedUser;
-  },
-  
-  deleteUser: (email: string): Promise<void> => {
-      return new Promise((resolve) => {
-          setTimeout(() => {
-              let users = getUsers();
-              users = users.filter(u => u.email !== email);
-              saveUsers(users);
-              
-              const currentUser = authService.getCurrentUser();
-              if(currentUser && currentUser.email === email) {
-                  authService.logout();
-              }
-              resolve();
-          }, 500);
-      });
-  }
+    deleteUser: (email: string): Promise<void> => {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                let users = getUsers();
+                users = users.filter(u => u.email !== email);
+                saveUsers(users);
+                authService.logout();
+                resolve();
+            }, 500);
+        });
+    },
 };

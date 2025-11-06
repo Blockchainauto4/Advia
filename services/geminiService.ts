@@ -1,365 +1,213 @@
-import { GoogleGenAI, Chat, GenerateContentRequest, Type, Part, VideosOperationResponse, Content } from "@google/genai";
-import type { SocialPost, SafetyEvent } from '../types.ts';
+// services/geminiService.ts
+// Fix: Add import for GoogleGenAI and related types.
+import { GoogleGenAI, GenerateContentRequest, Part, Type, GenerateContentResponse } from '@google/genai';
+// Fix: Import types from the central types file.
+import type { SocialPost, SafetyEvent, Lead } from '../types';
+
+const getAI = () => {
+    // FIX: Add a check for the API key to prevent crashes. The key is expected to be in environment variables.
+    if (!process.env.API_KEY) {
+        console.error("API_KEY environment variable not set.");
+        // A user-facing error should be thrown from the calling function.
+        // This is a safeguard.
+        throw new Error("API_KEY not configured.");
+    }
+    // Fix: Initialize GoogleGenAI with a named apiKey parameter.
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
+
+
+// --- Chat ---
 
 export async function* getChatStream(
-  history: GenerateContentRequest['contents'],
-  newMessage: string,
-  systemInstruction: string
-): AsyncGenerator<string> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("A variável de ambiente API_KEY não está configurada.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-    // The history is already formatted by the App component
-    const chat: Chat = ai.chats.create({
-        model: 'gemini-2.5-pro',
-        config: {
-            systemInstruction,
-            temperature: 0.7,
-        },
-        history,
+    history: GenerateContentRequest['contents'],
+    message: string,
+    systemInstruction: string,
+): AsyncGenerator<string, void, unknown> {
+    const ai = getAI();
+    const chat = ai.chats.create({
+        model: 'gemini-2.5-flash',
+        config: { systemInstruction },
+        history: history
     });
 
-    try {
-      const responseStream = await chat.sendMessageStream({ message: newMessage });
+    const result = await chat.sendMessageStream({ message });
 
-      for await (const chunk of responseStream) {
-          yield chunk.text;
-      }
-    } catch (error) {
-        console.error("Error streaming content from Gemini API:", error);
-        if (error instanceof Error) {
-            throw new Error(`Falha ao gerar conteúdo: ${error.message}.`);
-        }
-        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
+    for await (const chunk of result) {
+        yield chunk.text;
     }
 }
 
-export async function generateFollowUpSuggestions(
-  history: GenerateContentRequest['contents'],
-  systemInstruction: string
-): Promise<string[]> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("A variável de ambiente API_KEY não está configurada.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-    const prompt = `
-        Baseado no histórico desta conversa, sugira exatamente 3 perguntas curtas e diretas (máximo 8 palavras cada) que o usuário poderia fazer em seguida para aprofundar o tópico ou explorar um novo aspecto relacionado.
-        As perguntas devem ser proativas e úteis.
-        Retorne a resposta como um array JSON de strings. Não adicione nenhuma formatação extra, apenas o array.
-        Exemplo: ["Qual o prazo para contestar?", "Como funciona a citação?", "E se a parte não pagar?"]
-    `;
-
-    const contentsWithPrompt: Content[] = [...history, { role: 'user', parts: [{ text: prompt }] }];
-
-    const responseSchema = {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-    };
+export const generateFollowUpSuggestions = async (
+    history: GenerateContentRequest['contents'],
+    systemInstruction: string,
+): Promise<string[]> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const prompt = 'Com base na conversa, sugira 3 perguntas curtas de acompanhamento que o usuário poderia fazer. Responda APENAS com um array JSON de strings, como ["sugestão 1", "sugestão 2", "sugestão 3"].';
+    
+    const contents: GenerateContentRequest['contents'] = [
+        ...history,
+        { role: 'user', parts: [{ text: prompt }] }
+    ];
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: contentsWithPrompt,
+            model,
+            contents,
             config: {
                 systemInstruction,
                 responseMimeType: "application/json",
-                responseSchema,
-                temperature: 0.8,
-            },
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
         });
-        
-        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
-        const suggestions = JSON.parse(jsonText);
-        
-        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
-            return suggestions.slice(0, 3);
-        }
-        return [];
+
+        const jsonStr = response.text.trim();
+        const suggestions = JSON.parse(jsonStr);
+        return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
 
     } catch (error) {
-        console.error("Error generating follow-up suggestions:", error);
+        console.error('Error generating follow-up suggestions:', error);
         return [];
     }
-}
+};
+
+// --- Document Generator ---
 
 export async function* generateDocument(
     prompt: string,
     systemInstruction: string,
-    responseSchema: any // eslint-disable-line @typescript-eslint/no-explicit-any
-): AsyncGenerator<string> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("A variável de ambiente API_KEY não está configurada.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    responseSchema: any,
+): AsyncGenerator<string, void, unknown> {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro'; // Using a more powerful model for document generation
 
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: prompt,
-            config: {
-                systemInstruction,
-                responseMimeType: "application/json",
-                responseSchema,
-                temperature: 0.5,
-            },
-        });
-        
-        yield response.text;
+    const response = await ai.models.generateContentStream({
+        model,
+        contents: { parts: [{ text: prompt }] },
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema,
+        },
+    });
 
-    } catch (error) {
-        console.error("Error generating document from Gemini API:", error);
-        if (error instanceof Error) {
-            throw new Error(`Falha ao gerar documento: ${error.message}.`);
-        }
-        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
+    for await (const chunk of response) {
+        yield chunk.text;
     }
 }
+
+// --- Consultas & Calculators ---
 
 export const consultarPlacaVeiculo = async (placa: string): Promise<any[]> => {
-    // A chave de API (username) foi movida para a função serverless para segurança.
-    const requestUrl = `/api/reg-check?placa=${encodeURIComponent(placa)}`;
-
-    try {
-        const response = await fetch(requestUrl);
-
-        if (!response.ok) {
-            // Tenta extrair a mensagem de erro JSON da nossa função serverless
-            try {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Erro na API de consulta: ${response.statusText}`);
-            } catch (e) {
-                // Fallback se a resposta de erro não for JSON
-                throw new Error(`Erro na API de consulta: ${response.statusText}`);
-            }
-        }
-
-        const xmlString = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
-        
-        const vehicleJsonNode = xmlDoc.querySelector("vehicleJson");
-        if (vehicleJsonNode && vehicleJsonNode.textContent) {
-            try {
-                const jsonData = JSON.parse(vehicleJsonNode.textContent);
-                
-                if (jsonData.error) {
-                    throw new Error(jsonData.error.message || 'Erro retornado pela API.');
-                }
-
-                if (!jsonData.Description) {
-                    throw new Error("Placa não encontrada ou dados indisponíveis.");
-                }
-
-                // Mapeia para uma estrutura mais limpa para a UI
-                const mappedData = {
-                    description: jsonData.Description,
-                    registrationYear: jsonData.RegistrationYear,
-                    manufactureYear: jsonData.ManufactureYear,
-                    make: jsonData.CarMake?.CurrentTextValue,
-                    model: jsonData.CarModel,
-                    bodyStyle: jsonData.BodyStyle?.CurrentTextValue,
-                    engineSize: jsonData.EngineSize?.CurrentTextValue,
-                    numberOfDoors: jsonData.NumberOfDoors?.CurrentTextValue,
-                    numberOfSeats: jsonData.NumberOfSeats?.CurrentTextValue,
-                    fuelType: jsonData.FuelType?.CurrentTextValue,
-                    indicativeValue: jsonData.IndicativeValue,
-                };
-                return [mappedData];
-            } catch (e) {
-                throw new Error(e instanceof Error ? `Falha ao processar resposta: ${e.message}` : "A resposta da API não está no formato esperado.");
-            }
-        }
-        
-        throw new Error("Resposta da API inválida ou vazia. O campo 'vehicleJson' não foi encontrado.");
-
-    } catch (error) {
-        console.error("Error in vehicle plate consultation:", error);
-        if (error instanceof Error) {
-            throw new Error(`Falha na consulta: ${error.message}`);
-        }
-        throw new Error("Ocorreu um erro desconhecido na consulta da placa.");
+    const response = await fetch(`/api/reg-check?placa=${placa}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erro na API de consulta.' }));
+        throw new Error(errorData.message || `Erro: ${response.status}`);
     }
+    const xmlText = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+    const vehicleData = xmlDoc.getElementsByTagName("vehicleJson")[0]?.textContent;
+    if (vehicleData) {
+        return [JSON.parse(vehicleData)];
+    }
+    throw new Error('Não foi possível obter os dados do veículo.');
 };
 
-export async function analisarDadosVeiculo(veiculo: any, placa: string): Promise<{ pontosDeAtencao: string[]; sugestoesJuridicas: string[] }> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("A variável de ambiente API_KEY não está configurada.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+export const analisarDadosVeiculo = async (dados: any, placa: string): Promise<{ pontosDeAtencao: string[]; sugestoesJuridicas: string[] }> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const systemInstruction = "Você é um assistente jurídico especialista em direito de trânsito. Analise os dados de um veículo e forneça um resumo com pontos de atenção e sugestões.";
 
-    const prompt = `
-        Analise os dados deste veículo e forneça pontos de atenção e sugestões jurídicas.
-        Seja conciso e direto. Formato de resposta deve ser JSON.
+    const prompt = `Analise os seguintes dados do veículo com placa ${placa}: ${JSON.stringify(dados)}. Identifique 2 a 3 pontos de atenção críticos (ex: ano de fabricação muito antigo, situação de roubo, etc.) e 2 a 3 sugestões jurídicas ou próximos passos (ex: 'Verificar débitos no DETRAN', 'Recomendar perícia cautelar', etc.).`;
 
-        Dados do Veículo:
-        - Descrição: ${veiculo.description}
-        - Marca: ${veiculo.make}
-        - Modelo: ${veiculo.model}
-        - Ano Fabricação/Modelo: ${veiculo.manufactureYear}/${veiculo.registrationYear}
-        - Placa: ${placa}
-        - Motor: ${veiculo.engineSize || 'N/A'}
-        - Combustível: ${veiculo.fuelType || 'N/A'}
-        - Valor Indicativo: ${veiculo.indicativeValue || 'N/A'}
-        
-        Com base nestes dados, identifique possíveis problemas (ex: veículo muito antigo, modelo com histórico de problemas, valor incompatível) e sugira os próximos passos legais ou verificações que um comprador ou advogado deveria fazer (ex: verificar débitos de IPVA/multas, pesquisar por recalls, verificar sinistros).
-    `;
-
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            pontosDeAtencao: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: 'Lista de possíveis problemas ou pontos que requerem atenção.'
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    pontosDeAtencao: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    sugestoesJuridicas: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ["pontosDeAtencao", "sugestoesJuridicas"],
             },
-            sugestoesJuridicas: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: 'Lista de sugestões de próximos passos ou verificações legais.'
-            }
         },
-        required: ["pontosDeAtencao", "sugestoesJuridicas"]
-    };
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: prompt,
-            config: {
-                systemInstruction: 'Você é um assistente jurídico especialista em direito de trânsito. Sua resposta DEVE ser um objeto JSON válido com os campos "pontosDeAtencao" e "sugestoesJuridicas".',
-                responseMimeType: "application/json",
-                responseSchema,
-            },
-        });
-        
-        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
-        return JSON.parse(jsonText);
-    } catch (error) {
-        console.error("Error analyzing vehicle data with Gemini API:", error);
-        throw new Error("Falha ao analisar os dados do veículo.");
-    }
-}
-
-export const consultarCep = async (cep: string): Promise<any> => {
-    // Aponta para a nossa função serverless na Vercel
-    const requestUrl = `/api/consulta-cep?cep=${encodeURIComponent(cep.replace(/\D/g, ''))}`;
-
-    try {
-        const response = await fetch(requestUrl);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            const errorMessage = errorData?.message || `Erro do servidor: ${response.statusText}`;
-            throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        return data;
-
-    } catch (error) {
-        console.error("Error in CEP consultation:", error);
-        if (error instanceof Error) {
-            if (error.message.includes('Failed to fetch')) {
-                 throw new Error('Falha de comunicação com o servidor. Verifique sua conexão.');
-            }
-            throw new Error(`Falha na consulta: ${error.message}.`);
-        }
-        throw new Error("Ocorreu um erro desconhecido na consulta de CEP.");
-    }
+    });
+    
+    return JSON.parse(response.text);
 };
 
-export const consultarCnpj = async (cnpj: string): Promise<any> => {
-    // Aponta para a nossa função serverless na Vercel
-    const requestUrl = `/api/consulta-cnpj?cnpj=${encodeURIComponent(cnpj.replace(/\D/g, ''))}`;
 
-    try {
-        const response = await fetch(requestUrl);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            const errorMessage = errorData?.message || `Erro do servidor: ${response.statusText}`;
-            throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        return data;
-
-    } catch (error) {
-        console.error("Error in CNPJ consultation:", error);
-        if (error instanceof Error) {
-            if (error.message.includes('Failed to fetch')) {
-                 throw new Error('Falha de comunicação com o servidor. Verifique sua conexão.');
-            }
-            throw new Error(`Falha na consulta: ${error.message}.`);
-        }
-        throw new Error("Ocorreu um erro desconhecido na consulta de CNPJ.");
+export const consultarCep = async (cep: string) => {
+    const response = await fetch(`/api/consulta-cep?cep=${cep.replace(/\D/g, '')}`);
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao consultar CEP.');
     }
+    return response.json();
 };
 
-export async function generateContentCalendar(areaAtuacao: string, duracao: string): Promise<{ calendario: any[] }> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) throw new Error("A variável de ambiente API_KEY não está configurada.");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+export const consultarCnpj = async (cnpj: string) => {
+    const response = await fetch(`/api/consulta-cnpj?cnpj=${cnpj.replace(/\D/g, '')}`);
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao consultar CNPJ.');
+    }
+    return response.json();
+};
 
-    const prompt = `Crie um calendário de conteúdo para redes sociais (Instagram, TikTok) para um advogado especialista em ${areaAtuacao}. O calendário deve ter a duração de ${duracao} dias. Para cada dia, sugira um tema, um formato (ex: vídeo curto, post carrossel, post único) e uma chamada para ação (CTA).`;
+// --- Marketing ---
+export const generateContentCalendar = async (area: string, duracao: string): Promise<{ calendario: any[] }> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const prompt = `Crie um calendário de conteúdo de marketing jurídico para ${duracao} dias para um advogado especialista em ${area}. Para cada dia, sugira um tema, um formato (ex: Post, Carrossel, Vídeo Curto, Artigo) e uma CTA (Call to Action).`;
 
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            calendario: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        dia: { type: Type.INTEGER },
-                        tema: { type: Type.STRING },
-                        formato: { type: Type.STRING },
-                        cta: { type: Type.STRING }
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    calendario: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                dia: { type: Type.NUMBER },
+                                tema: { type: Type.STRING },
+                                formato: { type: Type.STRING },
+                                cta: { type: Type.STRING },
+                            },
+                            required: ["dia", "tema", "formato", "cta"],
+                        },
                     },
-                    required: ["dia", "tema", "formato", "cta"]
-                }
-            }
-        },
-        required: ["calendario"]
-    };
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: prompt,
-            config: {
-                systemInstruction: "Você é um especialista em marketing digital para advogados. Sua resposta DEVE ser um objeto JSON válido com a chave 'calendario'.",
-                responseMimeType: "application/json",
-                responseSchema,
+                },
             },
-        });
-        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
-        return JSON.parse(jsonText);
-    } catch (error) {
-        console.error("Error generating content calendar with Gemini API:", error);
-        throw new Error("Falha ao gerar o calendário de conteúdo.");
-    }
-}
+        },
+    });
+    return JSON.parse(response.text);
+};
 
-export async function generateSocialMediaPost(theme: string, platform: string, tone: string): Promise<Partial<SocialPost>> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) throw new Error("A variável de ambiente API_KEY não está configurada.");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+export const generateSocialMediaPost = async (theme: string, platform: string, tone: string): Promise<Partial<SocialPost>> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const systemInstruction = `Você é um especialista em marketing de conteúdo para advogados. Gere posts informativos e que engajam, respeitando as normas da OAB. O formato da resposta deve ser JSON.`;
 
-    let instruction = '';
+    let prompt = `Crie um post para a plataforma "${platform}" com o tema "${theme}" e um tom de voz "${tone}".\n`;
     let responseSchema: any;
 
-    const basePrompt = `Crie um post para um advogado sobre o tema: "${theme}". O tom deve ser ${tone}. A plataforma é ${platform}.`;
-
     if (platform.includes('Carrossel')) {
-        instruction = "Gere um título para o post, 3 a 5 slides (cada um com título, corpo e uma sugestão de imagem), sugestões visuais gerais e uma lista de hashtags. A resposta DEVE ser um objeto JSON válido.";
+        prompt += 'Gere um título e 5 slides, cada um com um título curto, um corpo de texto e uma sugestão de imagem. Inclua também sugestões visuais gerais e 5 hashtags.';
         responseSchema = {
             type: Type.OBJECT,
             properties: {
@@ -371,250 +219,323 @@ export async function generateSocialMediaPost(theme: string, platform: string, t
                         properties: {
                             title: { type: Type.STRING },
                             body: { type: Type.STRING },
-                            imageSuggestion: { type: Type.STRING }
+                            imageSuggestion: { type: Type.STRING },
                         },
-                        required: ["title", "body", "imageSuggestion"]
-                    }
+                        required: ["title", "body", "imageSuggestion"],
+                    },
                 },
                 visualSuggestions: { type: Type.STRING },
-                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }
+                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
             },
-            required: ["title", "slides", "visualSuggestions", "hashtags"]
         };
-    } else {
-        instruction = "Gere um título para o post, um roteiro/texto para o post, sugestões visuais e uma lista de hashtags. A resposta DEVE ser um objeto JSON válido.";
+    } else if (platform.includes('Blog')) {
+        prompt += 'Gere um título, um roteiro (script) de pelo menos 4 parágrafos, sugestões visuais e 5 hashtags.';
+        responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                articleBody: { type: Type.STRING },
+                visualSuggestions: { type: Type.STRING },
+                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+        };
+    } else { // Feed, TikTok, etc.
+        prompt += 'Gere um título, um roteiro/script para o post, sugestões visuais e 5 hashtags.';
         responseSchema = {
             type: Type.OBJECT,
             properties: {
                 title: { type: Type.STRING },
                 script: { type: Type.STRING },
                 visualSuggestions: { type: Type.STRING },
-                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } }
+                hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
             },
-            required: ["title", "script", "visualSuggestions", "hashtags"]
         };
     }
 
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema,
+        },
+    });
+    return JSON.parse(response.text);
+};
+
+export const generateVideoFromPost = async (post: SocialPost, doubt: string, onStatusUpdate: (msg: string) => void): Promise<string> => {
+    // Before making API call, create a new GoogleGenAI instance to ensure the latest API key is used.
+    const ai = getAI();
+    const model = 'veo-3.1-fast-generate-preview';
+    const prompt = `Crie um vídeo curto para o TikTok/Reels. O vídeo deve começar respondendo à pergunta "${doubt}". Em seguida, use o seguinte roteiro: "${post.script}". O vídeo deve ser dinâmico, com legendas e visualmente atraente para o tema jurídico.`;
+    
+    onStatusUpdate("Iniciando a operação de vídeo...");
+    let operation;
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: basePrompt,
-            config: {
-                systemInstruction: `Você é um especialista em marketing de conteúdo jurídico. ${instruction}`,
-                responseMimeType: "application/json",
-                responseSchema,
-            },
-        });
-        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
-        return JSON.parse(jsonText);
-    } catch (error) {
-        console.error("Error generating social media post with Gemini API:", error);
-        throw new Error("Falha ao gerar o post para rede social.");
-    }
-}
-
-export async function convertFileContent(filePart: Part, outputFormat: 'txt' | 'docx'): Promise<string> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("A variável de ambiente API_KEY não está configurada.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-    let prompt = '';
-    if (outputFormat === 'txt') {
-        prompt = "Extraia e retorne apenas o texto bruto do documento fornecido. Não inclua nenhuma formatação, comentário, preâmbulo ou explicação. Apenas o texto puro.";
-    } else { // docx
-        prompt = "Extraia o conteúdo do documento PDF fornecido. Reformate-o de forma limpa para ser colado em um documento do Microsoft Word. Preserve a estrutura como títulos, parágrafos e listas. Não adicione nenhum comentário, preâmbulo ou explicação. Apenas forneça o conteúdo de texto formatado.";
-    }
-
-    const textPart = { text: prompt };
-    const contents: Content[] = [{ parts: [textPart, filePart] }];
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro', // Pro model is good for document understanding
-            contents: contents,
-            config: {
-                temperature: 0.2, // Lower temperature for more deterministic extraction
-            },
-        });
-
-        return response.text;
-    } catch (error) {
-        console.error("Error converting file content with Gemini API:", error);
-        if (error instanceof Error) {
-            throw new Error(`Falha na conversão via IA: ${error.message}.`);
-        }
-        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API para conversão.");
-    }
-}
-
-export async function generateVideoFromPost(post: SocialPost, doubt: string, setVideoStatus: (status: string) => void): Promise<string> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) {
-        throw new Error("API_KEY_NOT_SELECTED");
-    }
-
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-    const prompt = `Crie um vídeo curto (estilo TikTok) para um advogado. O vídeo deve começar com a pergunta: "${doubt}". Em seguida, use o seguinte roteiro para responder a pergunta: "${post.script}". O tom deve ser ${post.tone}.`;
-
-    try {
-        setVideoStatus('Iniciando geração do vídeo...');
-        let operation = await ai.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview',
-            prompt: prompt,
+        operation = await ai.models.generateVideos({
+            model,
+            prompt,
             config: {
                 numberOfVideos: 1,
                 resolution: '720p',
-                aspectRatio: '9:16' // Portrait for TikTok/Reels
+                aspectRatio: '9:16'
             }
         });
-        setVideoStatus('Processando... Isso pode levar alguns minutos.');
-        
-        while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 10000)); // Poll every 10 seconds
-            setVideoStatus('Verificando status da geração...');
-            operation = await ai.operations.getVideosOperation({ operation: operation });
-        }
-        
-        if (operation.error) {
-            if (operation.error.message.includes('permission to access the resource')) {
-                 throw new Error("API_KEY_INVALID");
-            }
-            throw new Error(`Erro na operação: ${operation.error.message}`);
-        }
-
-        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (!downloadLink) {
-            throw new Error('Link para download do vídeo não encontrado na resposta.');
-        }
-
-        setVideoStatus('Buscando vídeo gerado...');
-        const videoResponse = await fetch(`${downloadLink}&key=${API_KEY}`);
-        if (!videoResponse.ok) {
-            const errorText = await videoResponse.text();
-            if (errorText.includes('Requested entity was not found.')) {
-                throw new Error("API_KEY_INVALID");
-            }
-            throw new Error(`Falha ao baixar o vídeo: ${videoResponse.statusText} - ${errorText}`);
-        }
-
-        const videoBlob = await videoResponse.blob();
-        const videoUrl = URL.createObjectURL(videoBlob);
-        
-        return videoUrl;
-
-    } catch (error) {
-        console.error("Error generating video with Gemini API:", error);
-        if (error instanceof Error && (error.message === 'API_KEY_INVALID' || error.message === 'API_KEY_NOT_SELECTED')) {
-            throw error;
-        }
-        throw new Error("Falha na geração do vídeo. Tente novamente.");
+    } catch (e: any) {
+         if (e.message?.includes('API key not valid')) {
+            throw new Error('API_KEY_INVALID');
+         }
+         throw e;
     }
-}
 
-export async function analyzeVideoFramesForSafety(frames: Part[]): Promise<{ events: Omit<SafetyEvent, 'timestamp' | 'frameDataUrl'>[] }> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) throw new Error("A variável de ambiente API_KEY não está configurada.");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    let checks = 0;
+    while (!operation.done && checks < 30) { // Timeout after 5 minutes (30 * 10s)
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        onStatusUpdate(`Verificando status (${checks + 1}/30)...`);
+        operation = await ai.operations.getVideosOperation({ operation });
+        checks++;
+    }
 
-    const prompt = `
-        Você é um sistema de IA para uma câmera de segurança veicular. Analise a sequência de frames de um vídeo gravado a partir do painel de um carro.
-        Sua tarefa é identificar e relatar:
-        1.  **Placas de veículos** que estejam claramente visíveis. Formate a resposta como "Placa identificada: [NÚMERO_PLACA]".
-        2.  **Possíveis infrações de trânsito** cometidas por outros veículos (ex: avançar sinal vermelho, conversão proibida, não dar preferência). Descreva a infração de forma objetiva.
-        3.  Qualquer outra **informação relevante** para segurança (ex: pedestre atravessando fora da faixa, objeto na pista).
+    if (!operation.done) {
+        throw new Error("A geração do vídeo demorou muito e foi cancelada.");
+    }
+    
+    if (operation.error) {
+        throw new Error(operation.error.message || "Erro desconhecido na geração do vídeo.");
+    }
 
-        Forneça a resposta como um objeto JSON.
-    `;
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (!downloadLink) {
+        throw new Error("Não foi possível obter o link de download do vídeo.");
+    }
 
-    const contents: Content[] = [{ parts: [{ text: prompt }, ...frames] }];
+    onStatusUpdate("Buscando o vídeo gerado...");
+    // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
+    const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    if (!videoResponse.ok) {
+        if(videoResponse.status === 404) {
+            throw new Error('Requested entity was not found.');
+        }
+        throw new Error("Falha ao baixar o vídeo gerado.");
+    }
 
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            events: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        type: { type: Type.STRING, enum: ['plate', 'infraction', 'info'] },
-                        description: { type: Type.STRING }
+    const videoBlob = await videoResponse.blob();
+    return URL.createObjectURL(videoBlob);
+};
+
+export const generateWhatsAppImage = async (toolName: string, toolDescription: string): Promise<string> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash-image';
+    const prompt = `Crie uma imagem de divulgação para WhatsApp, em formato de card vertical (9:16). A imagem deve ser profissional, com tema de advocacia (cores sóbrias como azul marinho, dourado, branco), e conter o texto principal: "Nova Ferramenta: ${toolName}", e um subtítulo: "${toolDescription}". Adicione o logo "AdvocaciaAI" de forma discreta.`;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: { parts: [{ text: prompt }] },
+        config: { responseModalities: ['IMAGE'] },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            return part.inlineData.data;
+        }
+    }
+    throw new Error("Nenhuma imagem foi gerada.");
+};
+
+// --- Safety Camera ---
+export const analyzeVideoFramesForSafety = async (frames: Part[]): Promise<{ events: Omit<SafetyEvent, 'timestamp' | 'frameDataUrl'>[] }> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const systemInstruction = "Você é um especialista em segurança de trânsito. Analise os frames de um vídeo de dashcam e identifique eventos relevantes.";
+    const prompt = "Analise esta sequência de frames de um vídeo de dashcam. Identifique e liste eventos importantes. Para cada evento, classifique o tipo ('plate' para placas de veículos, 'infraction' para possíveis infrações, 'info' para outros eventos relevantes) e forneça uma descrição curta. Responda em JSON.";
+    
+    const contents: GenerateContentRequest['contents'] = [{
+        parts: [{ text: prompt }, ...frames]
+    }];
+
+    const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    events: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                type: { type: Type.STRING },
+                                description: { type: Type.STRING },
+                            },
+                            required: ["type", "description"]
+                        },
                     },
-                    required: ["type", "description"]
-                }
-            }
+                },
+            },
         },
-        required: ["events"]
-    };
+    });
+    return JSON.parse(response.text);
+};
 
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image', // Good for image analysis
-            contents: contents,
-            config: {
-                systemInstruction: "Analise frames de vídeo de um carro. A resposta DEVE ser um objeto JSON válido com a chave 'events'.",
-                responseMimeType: "application/json",
-                responseSchema,
-            },
-        });
-        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
-        const parsedResult = JSON.parse(jsonText);
+
+// --- Conversor ---
+export const convertFileContent = async (filePart: Part, outputFormat: 'txt' | 'docx'): Promise<string> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const prompt = `Extraia todo o texto deste documento. Se o outputFormat for 'docx', mantenha a formatação original tanto quanto possível (negrito, itálico, listas, parágrafos). Se for 'txt', extraia apenas o texto puro.`;
+    
+    const contents: GenerateContentRequest['contents'] = [{
+        parts: [
+            { text: prompt },
+            { text: `outputFormat: ${outputFormat}` },
+            filePart
+        ]
+    }];
+
+    const response = await ai.models.generateContent({
+        model,
+        contents,
+    });
+
+    return response.text;
+};
+
+// --- Contract Consultant ---
+export const analyzeServiceRisks = async (description: string): Promise<{ risks: string[], questions: string[], suggestions: string[] }> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const prompt = `Analise a seguinte descrição de um serviço para um contrato: "${description}". Identifique os principais riscos jurídicos e operacionais, formule perguntas essenciais para esclarecer o escopo e sugira cláusulas contratuais indispensáveis para mitigar os riscos.`;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    questions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ["risks", "questions", "suggestions"]
+            }
+        }
+    });
+    return JSON.parse(response.text);
+};
+
+export const generateContractClause = async (description: string, clauseType: string): Promise<{ clauseText: string }> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const prompt = `Com base na descrição do serviço: "${description}", redija uma cláusula de "${clauseType}" para um contrato de prestação de serviços. A cláusula deve ser clara, objetiva e proteger ambas as partes.`;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    clauseText: { type: Type.STRING }
+                },
+                required: ["clauseText"]
+            }
+        }
+    });
+    return JSON.parse(response.text);
+};
+
+export async function* simulateContractNegotiationStream(contractText: string, persona: string): AsyncGenerator<string, void, unknown> {
+    const ai = getAI();
+    const model = 'gemini-2.5-pro';
+    const prompt = `Aja como um "${persona}". Analise o seguinte contrato e inicie uma negociação. Aponte 2 ou 3 cláusulas que você gostaria de alterar e justifique suas solicitações.\n\nCONTRATO:\n${contractText}`;
+
+    const response = await ai.models.generateContentStream({
+        model,
+        contents: prompt,
+    });
+
+    for await (const chunk of response) {
+        yield chunk.text;
+    }
+}
+
+// --- Lead Prospector ---
+export const findLeadsOnGoogleMaps = async (query: string, location: { latitude: number, longitude: number }): Promise<Lead[]> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    
+    const response = await ai.models.generateContent({
+        model,
+        contents: `Encontre empresas que correspondem a "${query}" perto da localização atual. Para cada empresa, forneça o nome, endereço, telefone, website e URL do Google Maps.`,
+        config: {
+            tools: [{ googleMaps: {} }],
+            toolConfig: { retrievalConfig: { latLng: location } },
+        },
+    });
+
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const leads: Lead[] = groundingChunks
+        .filter(chunk => chunk.maps)
+        .map((chunk, index) => ({
+            id: chunk.maps.placeId || `maps_${Date.now()}_${index}`,
+            name: chunk.maps.title,
+            address: chunk.maps.subtitle,
+            mapsUrl: chunk.maps.uri,
+            status: 'Novo',
+            createdAt: new Date().toISOString(),
+        }));
         
-        if (parsedResult.events && Array.isArray(parsedResult.events)) {
-            return { events: parsedResult.events };
+    // The text part might contain additional info like phone or website
+    const textLeads = parseLeadsFromText(response.text);
+    
+    // Combine and deduplicate
+    const allLeads = [...leads, ...textLeads];
+    const uniqueLeads = Array.from(new Map(allLeads.map(lead => [lead.name, lead])).values());
+    
+    return uniqueLeads;
+};
+
+function parseLeadsFromText(text: string): Lead[] {
+    // This is a simplistic parser. A more robust solution might be needed.
+    const leads: Lead[] = [];
+    const businesses = text.split('---'); // Assuming the model separates entries with '---'
+    businesses.forEach((bizText, index) => {
+        const nameMatch = bizText.match(/Nome:\s*(.*)/);
+        const addressMatch = bizText.match(/Endereço:\s*(.*)/);
+        const phoneMatch = bizText.match(/Telefone:\s*(.*)/);
+        const websiteMatch = bizText.match(/Website:\s*(.*)/);
+
+        if (nameMatch) {
+            leads.push({
+                id: `text_${Date.now()}_${index}`,
+                name: nameMatch[1].trim(),
+                address: addressMatch ? addressMatch[1].trim() : undefined,
+                phone: phoneMatch ? phoneMatch[1].trim() : undefined,
+                website: websiteMatch ? websiteMatch[1].trim() : undefined,
+                status: 'Novo',
+                createdAt: new Date().toISOString(),
+            });
         }
-        return { events: [] };
-    } catch (error) {
-        console.error("Error analyzing video frames with Gemini API:", error);
-        throw new Error("Falha ao analisar os frames do vídeo.");
-    }
+    });
+    return leads;
 }
 
-export async function generateWhatsAppImage(toolName: string, toolDescription: string): Promise<string> {
-    const API_KEY = process.env.API_KEY;
-    if (!API_KEY) throw new Error("A variável de ambiente API_KEY não está configurada.");
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+export const generateLeadProposal = async (lead: Lead, serviceDescription: string): Promise<string> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const prompt = `Crie uma mensagem curta e persuasiva para o WhatsApp para "${lead.name}", oferecendo o seguinte serviço: "${serviceDescription}". A mensagem deve ser amigável, profissional e terminar com uma pergunta para incentivar a resposta.`;
+    
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt
+    });
 
-    // Detailed prompt for a professional WhatsApp marketing image
-    const prompt = `
-        Crie uma imagem de marketing em formato vertical (proporção 9:16) para ser compartilhada no WhatsApp.
-        O design deve ser moderno, profissional e limpo, com uma estética que remeta a advocacia e tecnologia (ex: tons de azul escuro, cinza, branco, com elementos gráficos sutis como linhas de código, balanças da justiça estilizadas ou grafismos abstratos).
-
-        A imagem DEVE conter os seguintes textos, claramente legíveis:
-
-        1.  **Título Principal (destacado):** "${toolName}"
-        2.  **Subtítulo/Descrição (menor que o título):** "${toolDescription}"
-        3.  **Chamada para Ação (CTA, na parte inferior):** "Acesse e otimize seu tempo em advocaciaai.com.br"
-        4.  **Logo (discreto, no topo ou rodapé):** "AdvocaciaAI ✨"
-
-        Instruções de Estilo:
-        - Use fontes elegantes e legíveis.
-        - Garanta bom contraste entre o texto e o fundo.
-        - A imagem deve ser visualmente atraente e passar uma mensagem de eficiência e profissionalismo.
-        - Não use fotos de pessoas. Prefira elementos gráficos e abstratos.
-    `;
-
-    try {
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: '9:16',
-            },
-        });
-
-        if (response.generatedImages && response.generatedImages.length > 0) {
-            return response.generatedImages[0].image.imageBytes;
-        } else {
-            throw new Error('A API não retornou nenhuma imagem.');
-        }
-
-    } catch (error) {
-        console.error("Error generating WhatsApp image with Gemini API:", error);
-        throw new Error("Falha ao gerar a imagem de divulgação.");
-    }
-}
+    return response.text;
+};

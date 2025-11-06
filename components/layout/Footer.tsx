@@ -1,6 +1,7 @@
 import React from 'react';
-import { TwitterIcon, LinkedInIcon, SparklesIcon } from '../Icons.tsx';
-import { useNavigation } from '../../App.tsx';
+// Fix: Remove .tsx extension from imports.
+import { TwitterIcon, LinkedInIcon, SparklesIcon } from '../Icons';
+import { useNavigation } from '../../App';
 
 const FooterLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
   const { navigate } = useNavigation();

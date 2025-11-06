@@ -1,4 +1,5 @@
-import type { FormData } from '../types.ts';
+// Fix: Remove .ts extension from import.
+import type { FormData } from '../types';
 // Fix: Import `Type` enum for schema definitions.
 import { Type } from '@google/genai';
 

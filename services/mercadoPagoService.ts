@@ -1,6 +1,7 @@
 // services/mercadoPagoService.ts
 // FIX: Import Plan type from the central types file.
-import type { Plan, User } from '../types.ts';
+// Fix: Remove .ts extension from import.
+import type { Plan, User } from '../types';
 
 // ATENÇÃO: Este é um serviço de simulação.
 // Em uma aplicação real, esta função faria uma chamada a um backend seguro (ex: uma Vercel Serverless Function)
