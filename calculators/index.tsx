@@ -1,5 +1,365 @@
 import React, { useState, useEffect } from 'react';
-import { TrashIcon } from '../components/Icons';
+import { TrashIcon, SparklesIcon } from '../components/Icons';
+import { consultarPlacaVeiculo, analisarDadosVeiculo } from '../services/geminiService';
+
+
+// --- NEW CALCULATOR for INSS Discount ---
+export const DescontoINSSCalculator = () => {
+    const [salarioBruto, setSalarioBruto] = useState('');
+    const [resultado, setResultado] = useState<{
+        descontoTotal: number;
+        salarioLiquido: number;
+        aliquotaEfetiva: number;
+    } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const faixasComDeducao = [
+        { teto: 1412.00, aliquota: 0.075, deducao: 0 },
+        { teto: 2666.68, aliquota: 0.09, deducao: 21.18 },
+        { teto: 4000.03, aliquota: 0.12, deducao: 101.18 },
+        { teto: 7786.02, aliquota: 0.14, deducao: 181.18 },
+    ];
+    const tetoINSS = 7786.02;
+    const tetoContribuicao = 908.85;
+
+    const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const handleCalculate = () => {
+        setError(null);
+        setResultado(null);
+
+        const salario = parseFloat(salarioBruto);
+        if (isNaN(salario) || salario < 0) {
+            setError('Por favor, insira um salário bruto válido.');
+            return;
+        }
+
+        let descontoFinal = 0;
+        const baseCalculo = salario > tetoINSS ? tetoINSS : salario;
+        
+        if (salario > tetoINSS) {
+            descontoFinal = tetoContribuicao;
+        } else {
+            const faixaAplicavel = faixasComDeducao.find(f => baseCalculo <= f.teto);
+            if (faixaAplicavel) {
+                descontoFinal = (baseCalculo * faixaAplicavel.aliquota) - faixaAplicavel.deducao;
+            }
+        }
+        
+        const salarioLiquido = salario - descontoFinal;
+        const aliquotaEfetiva = salario > 0 ? (descontoFinal / salario) * 100 : 0;
+        
+        setResultado({
+            descontoTotal: descontoFinal,
+            salarioLiquido,
+            aliquotaEfetiva,
+        });
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <label htmlFor="salarioBrutoINSS" className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto Mensal (R$)</label>
+                <input
+                    type="number"
+                    id="salarioBrutoINSS"
+                    value={salarioBruto}
+                    onChange={e => setSalarioBruto(e.target.value)}
+                    placeholder="Ex: 3000"
+                    className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+            </div>
+            <button
+                onClick={handleCalculate}
+                className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+                Calcular Desconto
+            </button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            {resultado && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4">
+                    <h4 className="text-lg font-semibold text-gray-700">Resultado do Cálculo:</h4>
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                        <div className="bg-white p-3 rounded-md border">
+                            <div className="text-sm text-slate-500">Desconto INSS</div>
+                            <div className="font-bold text-red-600 text-lg">{formatCurrency(resultado.descontoTotal)}</div>
+                        </div>
+                        <div className="bg-white p-3 rounded-md border">
+                            <div className="text-sm text-slate-500">Salário Líquido (só INSS)</div>
+                            <div className="font-bold text-green-700 text-lg">{formatCurrency(resultado.salarioLiquido)}</div>
+                        </div>
+                        <div className="bg-white p-3 rounded-md border">
+                            <div className="text-sm text-slate-500">Alíquota Efetiva</div>
+                            <div className="font-bold text-indigo-700 text-lg">{resultado.aliquotaEfetiva.toFixed(2)}%</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <p className="text-xs text-slate-500 text-center italic mt-4">
+                <strong>Atenção:</strong> Cálculo baseado na tabela progressiva do INSS para 2024 (Portaria Interministerial MPS/MF Nº 2, de 11/01/2024). Não inclui descontos de Imposto de Renda (IRRF) ou outros benefícios/descontos. O valor é limitado ao teto de contribuição.
+            </p>
+        </div>
+    );
+};
+
+// --- NEW CALCULATOR for Vehicle Plate Consultation ---
+export const PlacaVeiculoCalculator = () => {
+    const [placa, setPlaca] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [resultado, setResultado] = useState<any[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [analiseJuridica, setAnaliseJuridica] = useState<{ pontosDeAtencao: string[]; sugestoesJuridicas: string[] } | null>(null);
+    const [isAnaliseLoading, setIsAnaliseLoading] = useState(false);
+
+
+    const handleCalculate = async () => {
+        if (!placa || placa.replace(/[^a-zA-Z0-9]/g, '').length < 7) {
+            setError('Por favor, insira uma placa válida com pelo menos 7 caracteres.');
+            return;
+        }
+        setIsLoading(true);
+        setError(null);
+        setResultado(null);
+        setAnaliseJuridica(null);
+
+        try {
+            const data = await consultarPlacaVeiculo(placa);
+            setResultado(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        if (resultado && resultado.length > 0) {
+            const performAnalysis = async () => {
+                setIsAnaliseLoading(true);
+                try {
+                    const analysis = await analisarDadosVeiculo(resultado[0], placa); 
+                    setAnaliseJuridica(analysis);
+                } catch (err) {
+                    setAnaliseJuridica({ 
+                        pontosDeAtencao: ["Erro na análise."], 
+                        sugestoesJuridicas: ["Não foi possível gerar a análise jurídica automatizada. Verifique os dados manualmente ou tente novamente."]
+                    });
+                } finally {
+                    setIsAnaliseLoading(false);
+                }
+            };
+            performAnalysis();
+        }
+    }, [resultado, placa]);
+    
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4">
+                <div>
+                    <label htmlFor="placa" className="block text-sm font-medium text-gray-700 mb-1">Placa do Veículo</label>
+                    <input 
+                        type="text" 
+                        id="placa" 
+                        value={placa} 
+                        onChange={e => setPlaca(e.target.value.toUpperCase())} 
+                        maxLength={7}
+                        placeholder="ABC1D23" 
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+            </div>
+            <button 
+                onClick={handleCalculate} 
+                disabled={isLoading}
+                className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+                {isLoading ? (
+                    <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Consultando...
+                    </>
+                ) : 'Consultar Placa'}
+            </button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            
+            {resultado && (
+                <div className="space-y-6">
+                    {resultado.length === 0 ? (
+                        <p className="text-center text-slate-600 bg-slate-50 p-4 rounded-md border">Nenhum veículo encontrado para a placa informada.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {resultado.map((veiculo, index) => (
+                                <div key={index} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Dados do Veículo</h4>
+                                    
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                                        <div className="bg-white p-2 rounded-md border col-span-2 md:col-span-3"><span className="block text-xs text-slate-500">Descrição</span><span className="font-bold">{veiculo.description}</span></div>
+
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Marca</span><span className="font-bold">{veiculo.make || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Modelo</span><span className="font-bold">{veiculo.model || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Ano Fab/Modelo</span><span className="font-bold">{veiculo.manufactureYear} / {veiculo.registrationYear}</span></div>
+
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Carroceria</span><span className="font-bold">{veiculo.bodyStyle || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Portas</span><span className="font-bold">{veiculo.numberOfDoors || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Assentos</span><span className="font-bold">{veiculo.numberOfSeats || 'N/A'}</span></div>
+
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Motor</span><span className="font-bold">{veiculo.engineSize || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Combustível</span><span className="font-bold">{veiculo.fuelType || 'N/A'}</span></div>
+                                        <div className="bg-white p-2 rounded-md border"><span className="block text-xs text-slate-500">Valor Indicativo</span><span className="font-bold">{veiculo.indicativeValue || 'N/A'}</span></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                     {isAnaliseLoading && (
+                        <div className="flex flex-col items-center justify-center text-center text-slate-500 p-8 bg-slate-50 rounded-lg border">
+                            <svg className="animate-spin h-8 w-8 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="font-semibold">Analisando dados com IA...</p>
+                            <p className="text-sm">Buscando por possíveis pontos de atenção.</p>
+                        </div>
+                    )}
+
+                    {analiseJuridica && !isAnaliseLoading && (
+                        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                            <h4 className="text-lg font-bold text-amber-900 mb-3 flex items-center">
+                                <SparklesIcon className="w-5 h-5 inline-block mr-2" />
+                                Análise Jurídica da IA
+                            </h4>
+                            
+                            <div className="space-y-4 text-sm">
+                                <div>
+                                    <h5 className="font-semibold text-amber-800 mb-1">Pontos de Atenção</h5>
+                                    <ul className="list-disc list-inside space-y-1 text-amber-900/80 pl-2">
+                                        {analiseJuridica.pontosDeAtencao.map((ponto, index) => <li key={index}>{ponto}</li>)}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h5 className="font-semibold text-amber-800 mb-1">Sugestões e Próximos Passos</h5>
+                                    <ul className="list-disc list-inside space-y-1 text-amber-900/80 pl-2">
+                                        {analiseJuridica.sugestoesJuridicas.map((sugestao, index) => <li key={index}>{sugestao}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            <p className="text-xs text-slate-500 text-center italic mt-4">
+                <strong>Atenção:</strong> Consulta de dados básicos do veículo fornecida por serviço externo. As informações não incluem dados de proprietário, débitos ou restrições. Para fins legais, consulte sempre os órgãos oficiais (DETRAN).
+            </p>
+        </div>
+    );
+};
+
+// --- NEW CALCULATOR for Vehicle Insurance Estimation ---
+export const SeguroVeiculoCalculator = () => {
+    const [valorFIPE, setValorFIPE] = useState('');
+    const [idadeVeiculo, setIdadeVeiculo] = useState('');
+    const [perfil, setPerfil] = useState('medio');
+    const [resultado, setResultado] = useState<{ valorAnual: number; valorMensal: number } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleCalculate = () => {
+        setError(null);
+        setResultado(null);
+
+        const fipe = parseFloat(valorFIPE);
+        const idade = parseInt(idadeVeiculo, 10);
+
+        if (isNaN(fipe) || fipe <= 5000 || isNaN(idade) || idade < 0) {
+            setError('Por favor, insira valores válidos. O valor FIPE deve ser maior que R$ 5.000 e a idade não pode ser negativa.');
+            return;
+        }
+
+        const baseRate = 0.05; // 5% base rate
+        let ageFactor = 1.0;
+        if (idade <= 2) ageFactor = 1.2;
+        else if (idade >= 3 && idade <= 5) ageFactor = 1.0;
+        else if (idade >= 6 && idade <= 10) ageFactor = 0.9;
+        else ageFactor = 0.8;
+
+        let profileFactor = 1.0;
+        if (perfil === 'bom') profileFactor = 0.8;
+        else if (perfil === 'risco') profileFactor = 1.5;
+
+        const valorAnual = fipe * baseRate * ageFactor * profileFactor;
+        const valorMensal = valorAnual / 12;
+
+        setResultado({ valorAnual, valorMensal });
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="valorFIPE" className="block text-sm font-medium text-gray-700 mb-1">Valor do Veículo (Tabela FIPE R$)</label>
+                    <input 
+                        type="number" 
+                        id="valorFIPE" 
+                        value={valorFIPE} 
+                        onChange={e => setValorFIPE(e.target.value)} 
+                        placeholder="Ex: 75000" 
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="idadeVeiculo" className="block text-sm font-medium text-gray-700 mb-1">Idade do Veículo (anos)</label>
+                    <input 
+                        type="number" 
+                        id="idadeVeiculo" 
+                        value={idadeVeiculo} 
+                        onChange={e => setIdadeVeiculo(e.target.value)} 
+                        placeholder="Ex: 3" 
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div className="sm:col-span-2">
+                    <label htmlFor="perfil" className="block text-sm font-medium text-gray-700 mb-1">Perfil do Condutor Principal</label>
+                    <select 
+                        id="perfil" 
+                        value={perfil} 
+                        onChange={e => setPerfil(e.target.value)}
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                        <option value="medio">Condutor Padrão</option>
+                        <option value="bom">Bom Condutor (+30 anos, sem sinistros)</option>
+                        <option value="risco">Alto Risco (-25 anos, com sinistros)</option>
+                    </select>
+                </div>
+            </div>
+            <button 
+                onClick={handleCalculate} 
+                className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+                Estimar Seguro
+            </button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            
+            {resultado && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <h4 className="text-lg font-semibold text-gray-700 mb-2">Estimativa do Seguro:</h4>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Valor Mensal (aproximado):</span>
+                            <span className="font-bold text-indigo-700 text-lg">{resultado.valorMensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600 text-lg">Prêmio Anual (total):</span>
+                            <span className="font-bold text-indigo-700 text-xl">{resultado.valorAnual.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <p className="text-xs text-slate-500 text-center italic mt-4">
+                <strong>Atenção:</strong> Esta é uma simulação simplificada e não representa uma cotação real. O valor do seguro depende de dezenas de fatores, como local de residência, modelo exato do veículo, uso, coberturas contratadas e análise de perfil da seguradora.
+            </p>
+        </div>
+    );
+};
+
 
 // --- CALCULATOR COMPONENTS ---
 
@@ -52,11 +412,11 @@ export const SimplesNacionalCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="faturamentoMensal" className="block text-sm font-medium text-gray-700 mb-1">Faturamento Bruto Mensal (R$)</label>
-                    <input type="number" id="faturamentoMensal" value={faturamentoMensal} onChange={e => setFaturamentoMensal(e.target.value)} placeholder="Ex: 5000" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="faturamentoMensal" value={faturamentoMensal} onChange={e => setFaturamentoMensal(e.target.value)} placeholder="Ex: 5000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="faturamentoAnual" className="block text-sm font-medium text-gray-700 mb-1">Receita Bruta últimos 12 meses (R$)</label>
-                    <input type="number" id="faturamentoAnual" value={faturamentoAnual} onChange={e => setFaturamentoAnual(e.target.value)} placeholder="Ex: 60000" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="faturamentoAnual" value={faturamentoAnual} onChange={e => setFaturamentoAnual(e.target.value)} placeholder="Ex: 60000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -145,27 +505,27 @@ export const HorasExtrasCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="salarioBruto" className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto Mensal (R$)</label>
-                    <input type="number" id="salarioBruto" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 2500" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="salarioBruto" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 2500" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="cargaHoraria" className="block text-sm font-medium text-gray-700 mb-1">Carga Horária Mensal</label>
-                    <input type="number" id="cargaHoraria" value={cargaHoraria} onChange={e => setCargaHoraria(e.target.value)} placeholder="Ex: 220" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="cargaHoraria" value={cargaHoraria} onChange={e => setCargaHoraria(e.target.value)} placeholder="Ex: 220" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="horas50" className="block text-sm font-medium text-gray-700 mb-1">Horas extras com 50%</label>
-                    <input type="number" id="horas50" value={horas50} onChange={e => setHoras50(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="horas50" value={horas50} onChange={e => setHoras50(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="horas100" className="block text-sm font-medium text-gray-700 mb-1">Horas extras com 100%</label>
-                    <input type="number" id="horas100" value={horas100} onChange={e => setHoras100(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="horas100" value={horas100} onChange={e => setHoras100(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="diasUteis" className="block text-sm font-medium text-gray-700 mb-1">Dias úteis no mês</label>
-                    <input type="number" id="diasUteis" value={diasUteis} onChange={e => setDiasUteis(e.target.value)} placeholder="Ex: 22" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="diasUteis" value={diasUteis} onChange={e => setDiasUteis(e.target.value)} placeholder="Ex: 22" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="domingosFeriados" className="block text-sm font-medium text-gray-700 mb-1">Domingos e feriados</label>
-                    <input type="number" id="domingosFeriados" value={domingosFeriados} onChange={e => setDomingosFeriados(e.target.value)} placeholder="Ex: 8" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="domingosFeriados" value={domingosFeriados} onChange={e => setDomingosFeriados(e.target.value)} placeholder="Ex: 8" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -257,11 +617,24 @@ export const RescisaoContratualCalculator = () => {
         const mesesTrabalhadosAno = demissao.getMonth() + (diasTrabalhadosMes > 14 ? 1 : 0);
         const decimoTerceiro = (salario / 12) * mesesTrabalhadosAno;
 
-        const umDia = 24 * 60 * 60 * 1000;
-        const diffDias = Math.round(Math.abs((admissao.getTime() - demissao.getTime()) / umDia));
-        const mesesContrato = Math.floor(diffDias / 30);
-        const mesesAquisitivos = (mesesContrato % 12) + ( (diffDias % 30) > 14 ? 1 : 0);
+        // --- Lógica de Férias Proporcionais Aprimorada ---
+        let anosDeServico = demissao.getFullYear() - admissao.getFullYear();
+        const aniversarioEsteAno = new Date(demissao.getFullYear(), admissao.getMonth(), admissao.getDate());
+        if (demissao < aniversarioEsteAno) {
+            anosDeServico--;
+        }
+        const inicioUltimoPeriodo = new Date(admissao);
+        inicioUltimoPeriodo.setFullYear(admissao.getFullYear() + anosDeServico);
         
+        let mesesAquisitivos = 0;
+        if (demissao > inicioUltimoPeriodo) {
+            mesesAquisitivos = (demissao.getFullYear() - inicioUltimoPeriodo.getFullYear()) * 12 + (demissao.getMonth() - inicioUltimoPeriodo.getMonth());
+            if (demissao.getDate() > 14) {
+                 mesesAquisitivos += 1;
+            }
+        }
+        // --- Fim da Lógica Aprimorada ---
+
         const feriasProporcionais = (salario / 12) * mesesAquisitivos;
         const umTercoFeriasProporcionais = feriasProporcionais / 3;
 
@@ -301,23 +674,23 @@ export const RescisaoContratualCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Último Salário Bruto (R$)</label>
-                    <input type="number" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 3000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 3000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Saldo FGTS para multa (R$)</label>
-                    <input type="number" value={saldoFgts} onChange={e => setSaldoFgts(e.target.value)} placeholder="Ex: 5000" disabled={motivo !== 'sem_justa_causa'} className="w-full px-3 py-2 bg-slate-50 border rounded-md disabled:bg-slate-200"/>
+                    <input type="number" value={saldoFgts} onChange={e => setSaldoFgts(e.target.value)} placeholder="Ex: 5000" disabled={motivo !== 'sem_justa_causa'} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md disabled:bg-slate-200"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Admissão</label>
-                    <input type="date" value={dataAdmissao} onChange={e => setDataAdmissao(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataAdmissao} onChange={e => setDataAdmissao(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Demissão</label>
-                    <input type="date" value={dataDemissao} onChange={e => setDataDemissao(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataDemissao} onChange={e => setDataDemissao(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Rescisão</label>
-                    <select value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={motivo} onChange={e => setMotivo(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="sem_justa_causa">Demissão sem justa causa</option>
                         <option value="pedido_demissao">Pedido de demissão</option>
                         <option value="justa_causa">Demissão por justa causa</option>
@@ -325,7 +698,7 @@ export const RescisaoContratualCalculator = () => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Aviso Prévio</label>
-                    <select value={avisoPrevio} onChange={e => setAvisoPrevio(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={avisoPrevio} onChange={e => setAvisoPrevio(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="indenizado">Indenizado</option>
                         <option value="trabalhado">Trabalhado</option>
                         <option value="dispensado">Dispensado</option>
@@ -432,11 +805,11 @@ export const PrazosCPCCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Data de Início (ou da publicação)</label>
-                    <input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="date" id="startDate" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="prazoDias" className="block text-sm font-medium text-gray-700 mb-1">Prazo em Dias Úteis</label>
-                    <input type="number" id="prazoDias" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 15" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="prazoDias" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 15" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -510,11 +883,11 @@ export const PrazosFazendaPublicaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="startDateFP" className="block text-sm font-medium text-gray-700 mb-1">Data de Início (publicação)</label>
-                    <input type="date" id="startDateFP" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="date" id="startDateFP" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="prazoDiasFP" className="block text-sm font-medium text-gray-700 mb-1">Prazo em Dias (sem dobrar)</label>
-                    <input type="number" id="prazoDiasFP" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 15" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="prazoDiasFP" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 15" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -575,11 +948,11 @@ export const PrazosPenaisCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="startDateCPP" className="block text-sm font-medium text-gray-700 mb-1">Data de Início (intimação/ciência)</label>
-                    <input type="date" id="startDateCPP" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="date" id="startDateCPP" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="prazoDiasCPP" className="block text-sm font-medium text-gray-700 mb-1">Prazo em Dias Corridos</label>
-                    <input type="number" id="prazoDiasCPP" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 5" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="prazoDiasCPP" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 5" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -653,11 +1026,11 @@ export const PrazosCLTCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="startDateCLT" className="block text-sm font-medium text-gray-700 mb-1">Data de Início (ciência/notificação)</label>
-                    <input type="date" id="startDateCLT" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="date" id="startDateCLT" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="prazoDiasCLT" className="block text-sm font-medium text-gray-700 mb-1">Prazo em Dias Úteis</label>
-                    <input type="number" id="prazoDiasCLT" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 8" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="prazoDiasCLT" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 8" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -731,11 +1104,11 @@ export const PrazosJECCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="startDateJEC" className="block text-sm font-medium text-gray-700 mb-1">Data de Início (ciência)</label>
-                    <input type="date" id="startDateJEC" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="date" id="startDateJEC" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="prazoDiasJEC" className="block text-sm font-medium text-gray-700 mb-1">Prazo em Dias Úteis</label>
-                    <input type="number" id="prazoDiasJEC" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="prazoDiasJEC" value={days} onChange={e => setDays(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -826,27 +1199,27 @@ export const CorrecaoMonetariaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Original (R$)</label>
-                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 1000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 1000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Índice de Correção Mensal (%)</label>
-                    <input type="number" value={indiceCorrecao} onChange={e => setIndiceCorrecao(e.target.value)} placeholder="Ex: 0.5" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={indiceCorrecao} onChange={e => setIndiceCorrecao(e.target.value)} placeholder="Ex: 0.5" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data Inicial</label>
-                    <input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data Final</label>
-                    <input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de Juros Mensal (%)</label>
-                    <input type="number" value={taxaJuros} onChange={e => setTaxaJuros(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={taxaJuros} onChange={e => setTaxaJuros(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Juros</label>
-                    <select value={tipoJuros} onChange={e => setTipoJuros(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={tipoJuros} onChange={e => setTipoJuros(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="simples">Juros Simples</option>
                         <option value="compostos">Juros Compostos</option>
                     </select>
@@ -940,23 +1313,23 @@ export const MultaJurosCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Original (R$)</label>
-                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 1000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 1000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual da Multa (%)</label>
-                    <input type="number" value={percentualMulta} onChange={e => setPercentualMulta(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={percentualMulta} onChange={e => setPercentualMulta(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
-                    <input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Pagamento</label>
-                    <input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                  <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de Juros Mensal (%)</label>
-                    <input type="number" value={percentualJuros} onChange={e => setPercentualJuros(e.target.value)} placeholder="Ex: 1" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={percentualJuros} onChange={e => setPercentualJuros(e.target.value)} placeholder="Ex: 1" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Valor Atualizado</button>
@@ -1062,19 +1435,19 @@ export const ParcelamentoFinanciamentoCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor do Financiamento (R$)</label>
-                    <input type="number" value={valorFinanciado} onChange={e => setValorFinanciado(e.target.value)} placeholder="Ex: 100000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorFinanciado} onChange={e => setValorFinanciado(e.target.value)} placeholder="Ex: 100000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Taxa de Juros Mensal (%)</label>
-                    <input type="number" value={taxaJuros} onChange={e => setTaxaJuros(e.target.value)} placeholder="Ex: 0.8" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={taxaJuros} onChange={e => setTaxaJuros(e.target.value)} placeholder="Ex: 0.8" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Número de Parcelas</label>
-                    <input type="number" value={numParcelas} onChange={e => setNumParcelas(e.target.value)} placeholder="Ex: 360" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={numParcelas} onChange={e => setNumParcelas(e.target.value)} placeholder="Ex: 360" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Sistema de Amortização</label>
-                    <select value={tipoAmortizacao} onChange={e => setTipoAmortizacao(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={tipoAmortizacao} onChange={e => setTipoAmortizacao(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="price">Tabela Price (Parcelas Fixas)</option>
                         <option value="sac">Tabela SAC (Parcelas Decrescentes)</option>
                     </select>
@@ -1149,11 +1522,11 @@ export const HonorariosSucumbenciaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="valorCausa" className="block text-sm font-medium text-gray-700 mb-1">Valor da Causa / Condenação (R$)</label>
-                    <input type="number" id="valorCausa" value={valorCausa} onChange={e => setValorCausa(e.target.value)} placeholder="Ex: 50000" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="valorCausa" value={valorCausa} onChange={e => setValorCausa(e.target.value)} placeholder="Ex: 50000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                  <div>
                     <label htmlFor="percentual" className="block text-sm font-medium text-gray-700 mb-1">Percentual de Honorários (%)</label>
-                    <input type="number" id="percentual" value={percentual} onChange={e => setPercentual(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="percentual" value={percentual} onChange={e => setPercentual(e.target.value)} placeholder="Ex: 10" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -1205,15 +1578,15 @@ export const PensaoAlimenticiaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Renda Líquida Mensal do Alimentante (R$)</label>
-                    <input type="number" value={rendaLiquida} onChange={e => setRendaLiquida(e.target.value)} placeholder="Ex: 5000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={rendaLiquida} onChange={e => setRendaLiquida(e.target.value)} placeholder="Ex: 5000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual Sugerido (%)</label>
-                    <input type="number" value={percentual} onChange={e => setPercentual(e.target.value)} placeholder="Ex: 30" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={percentual} onChange={e => setPercentual(e.target.value)} placeholder="Ex: 30" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Outras despesas já pagas pelo alimentante (R$)</label>
-                    <input type="number" value={outrasDespesas} onChange={e => setOutrasDespesas(e.target.value)} placeholder="Ex: Plano de saúde, escola" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={outrasDespesas} onChange={e => setOutrasDespesas(e.target.value)} placeholder="Ex: Plano de saúde, escola" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
              <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -1304,19 +1677,19 @@ export const ProgressaoRegimeCalculator = () => {
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pena Total</label>
                 <div className="grid grid-cols-3 gap-2">
-                    <input type="number" value={anos} onChange={e => setAnos(e.target.value)} placeholder="Anos" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                    <input type="number" value={meses} onChange={e => setMeses(e.target.value)} placeholder="Meses" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                    <input type="number" value={dias} onChange={e => setDias(e.target.value)} placeholder="Dias" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={anos} onChange={e => setAnos(e.target.value)} placeholder="Anos" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={meses} onChange={e => setMeses(e.target.value)} placeholder="Meses" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={dias} onChange={e => setDias(e.target.value)} placeholder="Dias" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data do Início da Pena</label>
-                    <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual para Progressão</label>
-                    <select value={percentual} onChange={e => setPercentual(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md text-sm">
+                    <select value={percentual} onChange={e => setPercentual(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md text-sm">
                         {percentualOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                 </div>
@@ -1375,11 +1748,11 @@ export const RemicaoPenaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="diasTrabalhados" className="block text-sm font-medium text-gray-700 mb-1">Total de Dias Trabalhados</label>
-                    <input type="number" id="diasTrabalhados" value={diasTrabalhados} onChange={e => setDiasTrabalhados(e.target.value)} placeholder="Ex: 180" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="diasTrabalhados" value={diasTrabalhados} onChange={e => setDiasTrabalhados(e.target.value)} placeholder="Ex: 180" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
                 <div>
                     <label htmlFor="horasEstudo" className="block text-sm font-medium text-gray-700 mb-1">Total de Horas de Estudo</label>
-                    <input type="number" id="horasEstudo" value={horasEstudo} onChange={e => setHorasEstudo(e.target.value)} placeholder="Ex: 120" className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                    <input type="number" id="horasEstudo" value={horasEstudo} onChange={e => setHorasEstudo(e.target.value)} placeholder="Ex: 120" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -1405,7 +1778,14 @@ export const RemicaoPenaCalculator = () => {
 export const TempoContribuicaoCalculator = () => {
     type Period = { id: number; start: string; end: string };
     const [periods, setPeriods] = useState<Period[]>([{ id: Date.now(), start: '', end: '' }]);
-    const [resultado, setResultado] = useState<{ anos: number; meses: number; dias: number } | null>(null);
+    const [targetYears, setTargetYears] = useState('15');
+    const [resultado, setResultado] = useState<{
+        anos: number;
+        meses: number;
+        dias: number;
+        tempoRestante?: { anos: number; meses: number; dias: number };
+        atingiuObjetivo?: boolean;
+    } | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleAddPeriod = () => {
@@ -1436,7 +1816,7 @@ export const TempoContribuicaoCalculator = () => {
             const endDate = new Date(period.end + 'T00:00:00');
 
             if (startDate > endDate) {
-                setError(`A data de fim (${endDate.toLocaleDateString('pt-BR')}) deve ser posterior à data de início (${startDate.toLocaleDateString('pt-BR')}).`);
+                setError(`A data de fim (${endDate.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}) deve ser posterior à data de início (${startDate.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}).`);
                 return;
             }
 
@@ -1445,23 +1825,48 @@ export const TempoContribuicaoCalculator = () => {
             totalDays += diffDays;
         }
 
-        const anos = Math.floor(totalDays / 365);
-        const diasRestantesAnos = totalDays % 365;
-        const meses = Math.floor(diasRestantesAnos / 30);
-        const dias = diasRestantesAnos % 30;
+        if (totalDays <= 0 && (!periods[0].start || !periods[0].end)) {
+            setError('Por favor, preencha pelo menos um período de contribuição.');
+            return;
+        }
 
-        setResultado({ anos, meses, dias });
+        const anos = Math.floor(totalDays / 365.25);
+        const diasRestantesAnos = totalDays % 365.25;
+        const meses = Math.floor(diasRestantesAnos / 30.44);
+        const dias = Math.round(diasRestantesAnos % 30.44);
+
+        const target = parseInt(targetYears, 10);
+        if (!isNaN(target) && target > 0) {
+            const targetDays = target * 365.25;
+            if (totalDays >= targetDays) {
+                setResultado({ anos, meses, dias, atingiuObjetivo: true });
+            } else {
+                const remainingDays = targetDays - totalDays;
+                const rAnos = Math.floor(remainingDays / 365.25);
+                const rDiasRestantes = remainingDays % 365.25;
+                const rMeses = Math.floor(rDiasRestantes / 30.44);
+                const rDias = Math.round(rDiasRestantes % 30.44);
+                setResultado({
+                    anos,
+                    meses,
+                    dias,
+                    tempoRestante: { anos: rAnos, meses: rMeses, dias: rDias }
+                });
+            }
+        } else {
+             setResultado({ anos, meses, dias });
+        }
     };
 
     return (
         <div className="space-y-6">
             <div className="space-y-4">
                 <label className="block text-sm font-medium text-gray-700">Períodos de Contribuição</label>
-                {periods.map((period, index) => (
+                {periods.map((period) => (
                     <div key={period.id} className="flex items-center gap-2 p-2 rounded-md bg-slate-50 border">
                         <div className="grid grid-cols-2 gap-2 flex-grow">
-                             <input type="date" value={period.start} onChange={e => handlePeriodChange(period.id, 'start', e.target.value)} className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
-                             <input type="date" value={period.end} onChange={e => handlePeriodChange(period.id, 'end', e.target.value)} className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
+                             <input type="date" value={period.start} onChange={e => handlePeriodChange(period.id, 'start', e.target.value)} className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
+                             <input type="date" value={period.end} onChange={e => handlePeriodChange(period.id, 'end', e.target.value)} className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
                         </div>
                         <button onClick={() => handleRemovePeriod(period.id)} disabled={periods.length === 1} className="p-1.5 text-red-500 hover:bg-red-100 rounded-md disabled:text-gray-300 disabled:hover:bg-transparent">
                             <TrashIcon className="w-4 h-4" />
@@ -1472,14 +1877,46 @@ export const TempoContribuicaoCalculator = () => {
                     + Adicionar Período
                 </button>
             </div>
-            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Tempo Total</button>
+
+             <div>
+                <label htmlFor="targetYears" className="block text-sm font-medium text-gray-700 mb-1">Objetivo de contribuição (anos)</label>
+                <input 
+                    type="number"
+                    id="targetYears"
+                    value={targetYears}
+                    onChange={e => setTargetYears(e.target.value)}
+                    placeholder="Ex: 15 (para aposentadoria por idade)"
+                    className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+            </div>
+
+            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Tempo</button>
+            
             {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            
             {resultado && (
-                <div className="bg-slate-50 p-4 rounded-lg border text-center">
-                    <h4 className="text-lg font-semibold text-gray-700 mb-1">Tempo Total de Contribuição:</h4>
-                    <p className="font-bold text-indigo-700 text-2xl">
-                        {resultado.anos} anos, {resultado.meses} meses e {resultado.dias} dias
-                    </p>
+                <div className="bg-slate-50 p-4 rounded-lg border text-center space-y-4">
+                    <div>
+                        <h4 className="text-lg font-semibold text-gray-700 mb-1">Tempo Total de Contribuição:</h4>
+                        <p className="font-bold text-indigo-700 text-2xl">
+                            {resultado.anos} anos, {resultado.meses} meses e {resultado.dias} dias
+                        </p>
+                    </div>
+                    
+                    {resultado.atingiuObjetivo && (
+                        <div className="bg-green-100 text-green-800 p-3 rounded-md">
+                            <p className="font-semibold">Parabéns! Você já atingiu o objetivo de {targetYears} anos de contribuição.</p>
+                        </div>
+                    )}
+
+                    {resultado.tempoRestante && (
+                         <div className="border-t pt-4">
+                             <h4 className="text-lg font-semibold text-gray-700 mb-1">Tempo Restante para o Objetivo:</h4>
+                             <p className="font-bold text-amber-700 text-xl">
+                                {resultado.tempoRestante.anos} anos, {resultado.tempoRestante.meses} meses e {resultado.tempoRestante.dias} dias
+                            </p>
+                         </div>
+                    )}
                 </div>
             )}
             <p className="text-xs text-slate-500 text-center italic mt-4">
@@ -1497,12 +1934,19 @@ export const CalculadoraComplexaPlaceholder: React.FC<{ title: string; message: 
             <div className="flex">
                 <div className="py-1"><svg className="fill-current h-6 w-6 text-amber-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zM9 5v6h2V5H9zm0 8v2h2v-2H9z"/></svg></div>
                 <div>
-                    <p className="font-bold">Cálculo Complexo</p>
+                    <p className="font-bold">{title}</p>
                     <p className="text-sm">{message}</p>
                 </div>
             </div>
         </div>
     </div>
+);
+
+export const SimulacaoAposentadoriaCompleta = () => (
+    <CalculadoraComplexaPlaceholder
+        title="Simulação Completa de Aposentadoria"
+        message="Este é o cálculo mais importante e complexo da Previdência. Ele envolve analisar todo o seu histórico de contribuições (CNIS), aplicar as diferentes regras de transição da Reforma (EC 103/2019) e calcular a média salarial para definir o valor do seu benefício. Para uma simulação precisa e oficial, recomendamos fortemente o uso do portal ou aplicativo 'Meu INSS', que já possui todos os seus dados."
+    />
 );
 
 export const AposentadoriaIdadeUrbanaCalculator = () => {
@@ -1557,18 +2001,18 @@ export const AposentadoriaIdadeUrbanaCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Gênero</label>
-                    <select value={genero} onChange={e => setGenero(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={genero} onChange={e => setGenero(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="homem">Masculino</option>
                         <option value="mulher">Feminino</option>
                     </select>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tempo de Contribuição (anos)</label>
-                    <input type="number" value={tempoContribuicao} onChange={e => setTempoContribuicao(e.target.value)} placeholder="Ex: 20" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={tempoContribuicao} onChange={e => setTempoContribuicao(e.target.value)} placeholder="Ex: 20" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
-                    <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataNascimento} onChange={e => setDataNascimento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Verificar Elegibilidade</button>
@@ -1627,15 +2071,15 @@ export const RMICalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Média dos Salários (SB)</label>
-                    <input type="number" value={salarioBeneficio} onChange={e => setSalarioBeneficio(e.target.value)} placeholder="Ex: 3500" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={salarioBeneficio} onChange={e => setSalarioBeneficio(e.target.value)} placeholder="Ex: 3500" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Anos de Contribuição</label>
-                    <input type="number" value={anosContribuicao} onChange={e => setAnosContribuicao(e.target.value)} placeholder="Ex: 25" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={anosContribuicao} onChange={e => setAnosContribuicao(e.target.value)} placeholder="Ex: 25" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Gênero</label>
-                    <select value={genero} onChange={e => setGenero(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md">
+                    <select value={genero} onChange={e => setGenero(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md">
                         <option value="homem">Masculino</option>
                         <option value="mulher">Feminino</option>
                     </select>
@@ -1685,15 +2129,15 @@ export const FatorPrevidenciarioCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Idade (anos)</label>
-                    <input type="number" value={idadeAnos} onChange={e => setIdadeAnos(e.target.value)} placeholder="Ex: 55" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={idadeAnos} onChange={e => setIdadeAnos(e.target.value)} placeholder="Ex: 55" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tempo de Contribuição (anos)</label>
-                    <input type="number" value={tempoContribuicaoAnos} onChange={e => setTempoContribuicaoAnos(e.target.value)} placeholder="Ex: 35" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={tempoContribuicaoAnos} onChange={e => setTempoContribuicaoAnos(e.target.value)} placeholder="Ex: 35" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Expectativa de Sobrevida</label>
-                    <input type="number" value={expectativaSobrevida} onChange={e => setExpectativaSobrevida(e.target.value)} placeholder="Consulte a Tábua do IBGE" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={expectativaSobrevida} onChange={e => setExpectativaSobrevida(e.target.value)} placeholder="Consulte a Tábua do IBGE" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Fator</button>
@@ -1741,11 +2185,11 @@ export const PensaoPorMorteCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Aposentadoria do Falecido (R$)</label>
-                    <input type="number" value={valorBeneficio} onChange={e => setValorBeneficio(e.target.value)} placeholder="Ex: 4000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorBeneficio} onChange={e => setValorBeneficio(e.target.value)} placeholder="Ex: 4000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nº de Dependentes</label>
-                    <input type="number" value={numDependentes} onChange={e => setNumDependentes(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={numDependentes} onChange={e => setNumDependentes(e.target.value)} placeholder="Ex: 2" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Pensão</button>
@@ -1790,11 +2234,11 @@ export const AuxilioBeneficioIncapacidadeCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Média de todos os salários (R$)</label>
-                    <input type="number" value={mediaSalarios} onChange={e => setMediaSalarios(e.target.value)} placeholder="Ex: 3000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={mediaSalarios} onChange={e => setMediaSalarios(e.target.value)} placeholder="Ex: 3000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Média dos últimos 12 salários (R$)</label>
-                    <input type="number" value={mediaUltimos12} onChange={e => setMediaUltimos12(e.target.value)} placeholder="Ex: 3200" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={mediaUltimos12} onChange={e => setMediaUltimos12(e.target.value)} placeholder="Ex: 3200" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Auxílio</button>
@@ -1849,11 +2293,11 @@ export const BPCLOASCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Renda Total da Família (R$)</label>
-                    <input type="number" value={rendaTotal} onChange={e => setRendaTotal(e.target.value)} placeholder="Soma de todos os ganhos" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={rendaTotal} onChange={e => setRendaTotal(e.target.value)} placeholder="Soma de todos os ganhos" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nº de Pessoas na Família</label>
-                    <input type="number" value={numPessoas} onChange={e => setNumPessoas(e.target.value)} placeholder="Ex: 4" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={numPessoas} onChange={e => setNumPessoas(e.target.value)} placeholder="Ex: 4" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Analisar Renda</button>
@@ -1872,40 +2316,83 @@ export const BPCLOASCalculator = () => {
 export const AtrasadosBeneficioCalculator = () => {
     const [valorMensal, setValorMensal] = useState('');
     const [dataInicio, setDataInicio] = useState('');
-    const [dataFim, setDataFim] = useState('');
-    const [resultado, setResultado] = useState<any | null>(null);
+    const [dataFim, setDataFim] = useState(''); // This is the calculation date
+    const [indiceCorrecao, setIndiceCorrecao] = useState('0.5'); // INPC is often around this
+    const [jurosMora, setJurosMora] = useState('0.5'); // Poupança rate is often used, this is a proxy
+    const [resultado, setResultado] = useState<{
+        principal: number;
+        correcao: number;
+        juros: number;
+        total: number;
+        meses: number;
+    } | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleCalculate = () => {
+        // Reset state
         setError(null);
         setResultado(null);
 
+        // Parse and validate inputs
         const valor = parseFloat(valorMensal);
-        if (isNaN(valor) || valor <= 0 || !dataInicio || !dataFim) {
-            setError('Preencha todos os campos com valores válidos.');
+        const indiceMensal = parseFloat(indiceCorrecao) / 100;
+        const jurosMensal = parseFloat(jurosMora) / 100;
+
+        if (isNaN(valor) || valor <= 0 || !dataInicio || !dataFim || isNaN(indiceMensal) || isNaN(jurosMensal)) {
+            setError('Preencha todos os campos com valores numéricos válidos.');
             return;
         }
 
-        const dInicial = new Date(dataInicio + 'T00:00:00');
-        const dFinal = new Date(dataFim + 'T00:00:00');
+        const dInicial = new Date(dataInicio + 'T00:00:00Z');
+        const dFinal = new Date(dataFim + 'T00:00:00Z');
 
         if (dInicial >= dFinal) {
-            setError('A data final deve ser posterior à data inicial.');
+            setError('A data final do cálculo deve ser posterior à data de início dos atrasados.');
             return;
         }
-
-        const meses = (dFinal.getFullYear() - dInicial.getFullYear()) * 12 + (dFinal.getMonth() - dInicial.getMonth());
         
-        if (meses < 0) {
-            setError('Ocorreu um erro no cálculo dos meses. Verifique as datas.');
+        let totalPrincipal = 0;
+        let totalCorrecao = 0;
+        let totalJuros = 0;
+        let totalMeses = 0;
+        
+        let iterDate = new Date(dInicial);
+        // Loop for each month from start date to end date, including both ends
+        while (iterDate <= dFinal) {
+            totalMeses++;
+            totalPrincipal += valor;
+
+            const mesesAtraso = (dFinal.getUTCFullYear() - iterDate.getUTCFullYear()) * 12 + (dFinal.getUTCMonth() - iterDate.getUTCMonth());
+            
+            if (mesesAtraso > 0) {
+                // Correção (compound)
+                const correcaoDaParcela = valor * (Math.pow(1 + indiceMensal, mesesAtraso) - 1);
+                totalCorrecao += correcaoDaParcela;
+                
+                // Juros (simple, on corrected value)
+                const parcelaCorrigida = valor + correcaoDaParcela;
+                const jurosDaParcela = parcelaCorrigida * jurosMensal * mesesAtraso;
+                totalJuros += jurosDaParcela;
+            }
+            
+            // Move to the next month
+            iterDate.setUTCMonth(iterDate.getUTCMonth() + 1);
+        }
+
+        if (totalMeses === 0) {
+            setError('O período de cálculo deve ser de pelo menos um mês.');
             return;
         }
 
-        const principal = valor * meses;
-        // Simplificação: juros e correção não foram aplicados para esta estimativa
-        const total = principal;
+        const valorTotal = totalPrincipal + totalCorrecao + totalJuros;
 
-        setResultado({ principal, total, meses });
+        setResultado({
+            principal: totalPrincipal,
+            correcao: totalCorrecao,
+            juros: totalJuros,
+            total: valorTotal,
+            meses: totalMeses,
+        });
     };
 
     const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -1915,38 +2402,50 @@ export const AtrasadosBeneficioCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Mensal do Benefício (R$)</label>
-                    <input type="number" value={valorMensal} onChange={e => setValorMensal(e.target.value)} placeholder="Ex: 1500" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorMensal} onChange={e => setValorMensal(e.target.value)} placeholder="Ex: 1500" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Índice de Correção Mensal (%)</label>
+                    <input type="number" value={indiceCorrecao} onChange={e => setIndiceCorrecao(e.target.value)} placeholder="Ex: 0.5 (INPC)" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nº de Meses em Atraso</label>
-                    <input type="text" value={resultado ? resultado.meses : ''} readOnly className="w-full px-3 py-2 bg-slate-200 border rounded-md"/>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Início dos Atrasados (DIB)</label>
+                    <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Início do Atraso</label>
-                    <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Final do Cálculo</label>
+                    <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Final do Atraso</label>
-                    <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                 <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Juros de Mora Mensal (%)</label>
+                    <input type="number" value={jurosMora} onChange={e => setJurosMora(e.target.value)} placeholder="Ex: 0.5 (Poupança)" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Atrasados</button>
             {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
             {resultado && (
                 <div className="bg-slate-50 p-4 rounded-lg border">
-                    <h4 className="text-lg font-semibold text-gray-700 mb-2">Valor Estimado:</h4>
-                    <div className="flex justify-between items-center text-lg">
-                        <span className="font-bold text-gray-800">Total Devido (sem juros/correção):</span>
-                        <span className="font-bold text-indigo-700">{formatCurrency(resultado.total)}</span>
+                    <h4 className="text-lg font-semibold text-gray-700 mb-2">Resumo do Cálculo:</h4>
+                    <p className="text-sm text-slate-600 mb-3 text-center">Período de <strong>{resultado.meses}</strong> meses.</p>
+                    <div className="space-y-2 text-sm">
+                        <div className="flex justify-between p-2 bg-white rounded"><span>Valor Principal:</span> <span className="font-medium">{formatCurrency(resultado.principal)}</span></div>
+                        <div className="flex justify-between p-2 bg-white rounded"><span>Correção Monetária:</span> <span className="font-medium">{formatCurrency(resultado.correcao)}</span></div>
+                        <div className="flex justify-between p-2 bg-white rounded"><span>Juros de Mora:</span> <span className="font-medium">{formatCurrency(resultado.juros)}</span></div>
+                        <hr className="my-2 border-slate-300"/>
+                        <div className="flex justify-between items-center text-lg p-2 bg-indigo-50 rounded">
+                            <span className="font-bold text-gray-800">Valor Total (Valor da Causa):</span>
+                            <span className="font-bold text-indigo-700">{formatCurrency(resultado.total)}</span>
+                        </div>
                     </div>
                 </div>
             )}
             <p className="text-xs text-slate-500 text-center italic mt-4">
-                <strong>Atenção:</strong> Este cálculo é uma estimativa do valor principal. O valor final pago pelo INSS ou pela Justiça incluirá juros e correção monetária, que não foram aplicados nesta ferramenta simplificada.
+                <strong>Atenção:</strong> Este cálculo é uma estimativa. Para débitos judiciais da Fazenda Pública, a correção é pelo IPCA-E e os juros são os da poupança (EC 113/2021). Os índices inseridos são apenas para simulação. Consulte um profissional para um cálculo preciso.
             </p>
         </div>
     );
 };
+
 
 // --- TRANSITO & SEGUROS CALCULATORS ---
 export const DPVATCalculator = () => <CalculadoraComplexaPlaceholder title="Indenização DPVAT / SPVAT" message="O DPVAT foi substituído pelo SPVAT em 2024, sob gestão da Caixa Econômica Federal. Os valores de indenização são fixos e definidos por lei, dependendo do tipo de dano (morte, invalidez permanente). A solicitação deve ser feita diretamente à Caixa. Consulte um profissional para orientação sobre o processo." />;
@@ -1995,16 +2494,16 @@ export const MultasTransitoCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Original da Multa (R$)</label>
-                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 293.47" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 293.47" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div></div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label>
-                    <input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data de Pagamento</label>
-                    <input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Valor Atualizado</button>
@@ -2072,19 +2571,19 @@ export const PontuacaoCNHCalculator = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Leves (3 pts)</label>
-                    <input type="number" value={leves} onChange={e => setLeves(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={leves} onChange={e => setLeves(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Médias (4 pts)</label>
-                    <input type="number" value={medias} onChange={e => setMedias(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={medias} onChange={e => setMedias(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Graves (5 pts)</label>
-                    <input type="number" value={graves} onChange={e => setGraves(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={graves} onChange={e => setGraves(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Gravíssimas (7 pts)</label>
-                    <input type="number" value={gravissimas} onChange={e => setGravissimas(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={gravissimas} onChange={e => setGravissimas(e.target.value)} placeholder="0" className="w-full text-center px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Pontuação</button>
@@ -2127,11 +2626,11 @@ export const PerdaTotalVeiculoCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor da Tabela FIPE (R$)</label>
-                    <input type="number" value={valorFIPE} onChange={e => setValorFIPE(e.target.value)} placeholder="Ex: 85000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorFIPE} onChange={e => setValorFIPE(e.target.value)} placeholder="Ex: 85000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Percentual da Apólice (%)</label>
-                    <input type="number" value={percentualApolice} onChange={e => setPercentualApolice(e.target.value)} placeholder="Ex: 100" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={percentualApolice} onChange={e => setPercentualApolice(e.target.value)} placeholder="Ex: 100" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Indenização</button>
@@ -2188,10 +2687,10 @@ export const AtualizacaoIPVACalculator = () => {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Valor Original do IPVA (R$)</label><input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 2500" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Valor Original do IPVA (R$)</label><input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 2500" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/></div>
                 <div></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label><input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Data de Pagamento</label><input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento</label><input type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Data de Pagamento</label><input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/></div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Valor Atualizado</button>
             {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
@@ -2246,11 +2745,11 @@ export const RestituicaoIPVACalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Anual do IPVA Pago (R$)</label>
-                    <input type="number" value={valorIPVA} onChange={e => setValorIPVA(e.target.value)} placeholder="Ex: 2000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorIPVA} onChange={e => setValorIPVA(e.target.value)} placeholder="Ex: 2000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data do Sinistro (B.O.)</label>
-                    <input type="date" value={dataSinistro} onChange={e => setDataSinistro(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataSinistro} onChange={e => setDataSinistro(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Restituição</button>
@@ -2304,8 +2803,8 @@ export const DanosMateriaisCalculator = () => {
                 {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-2 p-2 rounded-md bg-slate-50 border">
                         <div className="grid grid-cols-2 gap-2 flex-grow">
-                             <input type="text" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} placeholder="Descrição (ex: conserto, nota fiscal)" className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
-                             <input type="number" value={item.value} onChange={e => handleItemChange(item.id, 'value', e.target.value)} placeholder="Valor R$" className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
+                             <input type="text" value={item.description} onChange={e => handleItemChange(item.id, 'description', e.target.value)} placeholder="Descrição (ex: conserto, nota fiscal)" className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
+                             <input type="number" value={item.value} onChange={e => handleItemChange(item.id, 'value', e.target.value)} placeholder="Valor R$" className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
                         </div>
                         <button onClick={() => handleRemoveItem(item.id)} disabled={items.length === 1} className="p-1.5 text-red-500 hover:bg-red-100 rounded-md disabled:text-gray-300 disabled:hover:bg-transparent" aria-label="Remover item">
                             <TrashIcon className="w-4 h-4" />
@@ -2359,11 +2858,11 @@ export const LucrosCessantesCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="rendaMediaMensal" className="block text-sm font-medium text-gray-700 mb-1">Renda Média Mensal (R$)</label>
-                    <input type="number" id="rendaMediaMensal" value={rendaMediaMensal} onChange={e => setRendaMediaMensal(e.target.value)} placeholder="O que deixou de ganhar" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" id="rendaMediaMensal" value={rendaMediaMensal} onChange={e => setRendaMediaMensal(e.target.value)} placeholder="O que deixou de ganhar" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label htmlFor="mesesParado" className="block text-sm font-medium text-gray-700 mb-1">Meses de Paralisação</label>
-                    <input type="number" id="mesesParado" value={mesesParado} onChange={e => setMesesParado(e.target.value)} placeholder="Tempo que ficou sem trabalhar" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" id="mesesParado" value={mesesParado} onChange={e => setMesesParado(e.target.value)} placeholder="Tempo que ficou sem trabalhar" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">
@@ -2419,8 +2918,8 @@ export const LiquidacaoVerbasCalculator = () => {
                 {rubricas.map((rubrica) => (
                     <div key={rubrica.id} className="flex items-center gap-2 p-2 rounded-md bg-slate-50 border">
                         <div className="grid grid-cols-2 gap-2 flex-grow">
-                             <input type="text" value={rubrica.description} onChange={e => handleRubricaChange(rubrica.id, 'description', e.target.value)} placeholder="Descrição da verba (ex: Hora extra 50%)" className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
-                             <input type="number" value={rubrica.value} onChange={e => handleRubricaChange(rubrica.id, 'value', e.target.value)} placeholder="Valor R$" className="w-full px-2 py-1 bg-white border rounded-md text-sm"/>
+                             <input type="text" value={rubrica.description} onChange={e => handleRubricaChange(rubrica.id, 'description', e.target.value)} placeholder="Descrição da verba (ex: Hora extra 50%)" className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
+                             <input type="number" value={rubrica.value} onChange={e => handleRubricaChange(rubrica.id, 'value', e.target.value)} placeholder="Valor R$" className="w-full px-2 py-1 text-gray-900 bg-white border rounded-md text-sm"/>
                         </div>
                         <button onClick={() => handleRemoveRubrica(rubrica.id)} disabled={rubricas.length === 1} className="p-1.5 text-red-500 hover:bg-red-100 rounded-md disabled:text-gray-300 disabled:hover:bg-transparent" aria-label="Remover verba">
                             <TrashIcon className="w-4 h-4" />
@@ -2496,145 +2995,33 @@ export const CorrecaoValorImovelCalculator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Original do Imóvel (R$)</label>
-                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 500000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} placeholder="Ex: 500000" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Índice Mensal (INCC, IPCA, etc. %)</label>
-                    <input type="number" value={indiceCorrecao} onChange={e => setIndiceCorrecao(e.target.value)} placeholder="Ex: 0.8" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="number" value={indiceCorrecao} onChange={e => setIndiceCorrecao(e.target.value)} placeholder="Ex: 0.8" className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data Inicial do Contrato</label>
-                    <input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data Final para Correção</label>
-                    <input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
+                    <input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md"/>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Valor Corrigido</button>
             {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
             {resultado && (
                 <div className="bg-slate-50 p-4 rounded-lg border text-center">
-                    <h4 className="text-lg font-semibold text-gray-700 mb-1">Valor do Imóvel Corrigido:</h4>
+                    <h4 className="text-lg font-semibold text-gray-700 mb-1">Valor Corrigido do Imóvel:</h4>
                     <p className="font-bold text-indigo-700 text-2xl">{formatCurrency(resultado.valorCorrigido)}</p>
                 </div>
             )}
-            <p className="text-xs text-slate-500 text-center italic mt-4">
-                <strong>Atenção:</strong> Este cálculo é uma estimativa. Utilize o índice de correção monetária previsto em seu contrato (ex: INCC para imóveis na planta, IGPM ou IPCA para contratos de aluguel ou venda). Consulte sempre as fontes oficiais dos índices.
-            </p>
+            <p className="text-xs text-slate-500 text-center italic mt-4"><strong>Atenção:</strong> Cálculo simplificado. O índice correto (INCC, IGP-M, etc.) deve ser obtido de fontes oficiais e aplicado mês a mês para um valor exato. Consulte um profissional.</p>
         </div>
     );
 };
 
-export const AtrasoEntregaImovelCalculator = () => {
-    const [valorImovel, setValorImovel] = useState('');
-    const [dataPrevista, setDataPrevista] = useState('');
-    const [dataEfetiva, setDataEfetiva] = useState('');
-    const [percentualMulta, setPercentualMulta] = useState('0.5');
-    const [aluguelMensal, setAluguelMensal] = useState('');
-
-    const [resultado, setResultado] = useState<{
-        mesesAtraso: number;
-        diasAtraso: number;
-        valorMulta: number;
-        valorIndenizacao: number;
-        valorTotal: number;
-    } | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    
-    const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-    const handleCalculate = () => {
-        setError(null);
-        setResultado(null);
-
-        const vImovel = parseFloat(valorImovel);
-        const pMulta = parseFloat(percentualMulta) / 100;
-        const vAluguel = parseFloat(aluguelMensal || '0');
-
-        if (isNaN(vImovel) || vImovel <= 0 || isNaN(pMulta) || pMulta < 0 || isNaN(vAluguel) || vAluguel < 0 || !dataPrevista || !dataEfetiva) {
-            setError('Preencha os campos obrigatórios com valores válidos.');
-            return;
-        }
-
-        const dPrevista = new Date(dataPrevista + 'T00:00:00');
-        const dEfetiva = new Date(dataEfetiva + 'T00:00:00');
-
-        if (dEfetiva <= dPrevista) {
-            setResultado({ mesesAtraso: 0, diasAtraso: 0, valorMulta: 0, valorIndenizacao: 0, valorTotal: 0 });
-            return;
-        }
-
-        const umDia = 1000 * 60 * 60 * 24;
-        const diasDeAtrasoTotal = Math.floor((dEfetiva.getTime() - dPrevista.getTime()) / umDia);
-        const mesesFracionados = diasDeAtrasoTotal / 30.44; // Média de dias no mês para o cálculo
-
-        const displayMeses = Math.floor(diasDeAtrasoTotal / 30.44);
-        const displayDias = Math.round(diasDeAtrasoTotal % 30.44);
-
-        const valorMultaCalc = vImovel * pMulta * mesesFracionados;
-        const valorIndenizacaoCalc = vAluguel * mesesFracionados;
-        const valorTotalCalc = valorMultaCalc + valorIndenizacaoCalc;
-
-        setResultado({
-            mesesAtraso: displayMeses,
-            diasAtraso: displayDias,
-            valorMulta: valorMultaCalc,
-            valorIndenizacao: valorIndenizacaoCalc,
-            valorTotal: valorTotalCalc,
-        });
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Valor do Imóvel (R$)</label>
-                    <input type="number" value={valorImovel} onChange={e => setValorImovel(e.target.value)} placeholder="Ex: 500000" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Multa Contratual (% a.m.)</label>
-                    <input type="number" value={percentualMulta} onChange={e => setPercentualMulta(e.target.value)} placeholder="Ex: 0.5" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Prevista de Entrega</label>
-                    <input type="date" value={dataPrevista} onChange={e => setDataPrevista(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data Efetiva da Entrega</label>
-                    <input type="date" value={dataEfetiva} onChange={e => setDataEfetiva(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                </div>
-                <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Aluguel Mensal Pago no Período (R$)</label>
-                    <input type="number" value={aluguelMensal} onChange={e => setAluguelMensal(e.target.value)} placeholder="Opcional: para lucros cessantes" className="w-full px-3 py-2 bg-slate-50 border rounded-md"/>
-                </div>
-            </div>
-            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Indenização</button>
-            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
-            {resultado && (
-                <div className="bg-slate-50 p-4 rounded-lg border">
-                    <h4 className="text-lg font-semibold text-gray-700 mb-2">Resultado Estimado:</h4>
-                    <p className="text-sm text-slate-600 mb-3 text-center">Atraso total de <strong>{resultado.mesesAtraso}</strong> meses e <strong>{resultado.diasAtraso}</strong> dia(s).</p>
-                    <div className="space-y-2">
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Valor da Multa Contratual:</span>
-                            <span className="font-bold text-gray-800">{formatCurrency(resultado.valorMulta)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Indenização (Aluguel):</span>
-                            <span className="font-bold text-gray-800">{formatCurrency(resultado.valorIndenizacao)}</span>
-                        </div>
-                        <hr className="my-2 border-slate-300"/>
-                        <div className="flex justify-between items-center text-lg">
-                            <span className="font-bold text-gray-800">Valor Total a Receber:</span>
-                            <span className="font-bold text-indigo-700">{formatCurrency(resultado.valorTotal)}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-            <p className="text-xs text-slate-500 text-center italic mt-4">
-                <strong>Atenção:</strong> Este cálculo é uma estimativa. A possibilidade de cumular a multa contratual com lucros cessantes (aluguel) é tema de debate jurídico (Temas 970 e 971 do STJ). Este cálculo não inclui juros ou correção monetária. Consulte sempre um advogado.
-            </p>
-        </div>
-    );
-};
+// FIX: Added missing AtrasoEntregaImovelCalculator component to resolve import error.
+export const AtrasoEntregaImovelCalculator = () => <CalculadoraComplexaPlaceholder title="Indenização por Atraso na Entrega de Imóvel" message="O cálculo de indenização por atraso na entrega de imóvel (seja por lucros cessantes, dano emergente ou multa contratual) depende da análise do contrato e da jurisprudência. Recomendamos a consulta a um advogado especializado." />;

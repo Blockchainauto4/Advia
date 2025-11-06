@@ -21,7 +21,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, id, value, onChange, pla
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
     />
   </div>
 );
@@ -82,7 +82,7 @@ export const DocumentGeneratorPage: React.FC<DocumentGeneratorPageProps> = ({
               id="docType"
               value={docType}
               onChange={handleDocTypeChange}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {documentConfigs.map(doc => (
                 <option key={doc.value} value={doc.value}>{doc.label}</option>
@@ -101,7 +101,7 @@ export const DocumentGeneratorPage: React.FC<DocumentGeneratorPageProps> = ({
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={currentConfig.promptPlaceholder}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 

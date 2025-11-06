@@ -1,4 +1,7 @@
+
 import type { FormData } from '../types';
+// Fix: Import `Type` enum for schema definitions.
+import { Type } from '@google/genai';
 
 export interface DocumentField {
   id: string;
@@ -42,12 +45,13 @@ export const documentConfigs: DocumentConfig[] = [
     promptPlaceholder: 'Ex: Discorra sobre a legalidade da cobrança de taxa de conveniência na venda de ingressos online para eventos, considerando o Código de Defesa do Consumidor.',
     systemInstruction: `Você é um assistente jurídico especialista em redigir pareceres. Sua resposta DEVE ser um objeto JSON válido com os campos "ementa", "relatorio", "fundamentacao" e "conclusao".`,
     responseSchema: {
-      type: 'OBJECT',
+      // Fix: Use `Type` enum.
+      type: Type.OBJECT,
       properties: {
-        ementa: { type: 'STRING', description: "Resumo conciso do parecer." },
-        relatorio: { type: 'STRING', description: "Descrição objetiva dos fatos." },
-        fundamentacao: { type: 'STRING', description: "Análise jurídica aprofundada." },
-        conclusao: { type: 'STRING', description: "Opinião final, clara e direta." },
+        ementa: { type: Type.STRING, description: "Resumo conciso do parecer." },
+        relatorio: { type: Type.STRING, description: "Descrição objetiva dos fatos." },
+        fundamentacao: { type: Type.STRING, description: "Análise jurídica aprofundada." },
+        conclusao: { type: Type.STRING, description: "Opinião final, clara e direta." },
       },
       required: ["ementa", "relatorio", "fundamentacao", "conclusao"],
     },
@@ -94,11 +98,12 @@ ${data.oab || '[OAB/UF XXXXX]'}
     promptPlaceholder: 'Ex: O Requerente comprou um produto da Requerida que apresentou defeito em uma semana. A Requerida se nega a trocar o produto, violando o Art. 18 do CDC...',
     systemInstruction: `Você é um advogado experiente elaborando uma petição inicial. Sua resposta DEVE ser um objeto JSON com os campos "fatos", "direito" e "pedidos".`,
     responseSchema: {
-        type: 'OBJECT',
+        // Fix: Use `Type` enum.
+        type: Type.OBJECT,
         properties: {
-          fatos: { type: 'STRING', description: "Narra a sequência dos acontecimentos de forma clara e cronológica." },
-          direito: { type: 'STRING', description: "Apresenta os fundamentos jurídicos que amparam a pretensão do autor." },
-          pedidos: { type: 'STRING', description: "Lista de forma clara e específica o que se pede ao juízo (ex: citação do réu, procedência do pedido, condenação em custas)." },
+          fatos: { type: Type.STRING, description: "Narra a sequência dos acontecimentos de forma clara e cronológica." },
+          direito: { type: Type.STRING, description: "Apresenta os fundamentos jurídicos que amparam a pretensão do autor." },
+          pedidos: { type: Type.STRING, description: "Lista de forma clara e específica o que se pede ao juízo (ex: citação do réu, procedência do pedido, condenação em custas)." },
         },
         required: ["fatos", "direito", "pedidos"],
     },
@@ -147,11 +152,12 @@ ${data.oab || '[OAB/UF XXXXX]'}
     promptPlaceholder: 'Ex: O produto não apresentou defeito, mas sim mau uso pelo Autor, conforme laudo técnico anexo. Impugna-se o pedido de danos morais por ausência de ato ilícito...',
     systemInstruction: `Você é um advogado redigindo uma contestação. Sua resposta DEVE ser um objeto JSON com os campos "preliminares", "merito" e "requerimentos".`,
     responseSchema: {
-        type: 'OBJECT',
+        // Fix: Use `Type` enum.
+        type: Type.OBJECT,
         properties: {
-          preliminares: { type: 'STRING', description: "Argumentos processuais que podem levar à extinção do processo sem análise do mérito (ex: inépcia da inicial, ilegitimidade de parte)." },
-          merito: { type: 'STRING', description: "Defesa central, rebatendo os fatos e fundamentos apresentados pelo autor e expondo as razões do réu." },
-          requerimentos: { type: 'STRING', description: "Pedidos feitos ao juiz (ex: acolhimento das preliminares, improcedência da ação, condenação do autor em sucumbência)." },
+          preliminares: { type: Type.STRING, description: "Argumentos processuais que podem levar à extinção do processo sem análise do mérito (ex: inépcia da inicial, ilegitimidade de parte)." },
+          merito: { type: Type.STRING, description: "Defesa central, rebatendo os fatos e fundamentos apresentados pelo autor e expondo as razões do réu." },
+          requerimentos: { type: Type.STRING, description: "Pedidos feitos ao juiz (ex: acolhimento das preliminares, improcedência da ação, condenação do autor em sucumbência)." },
         },
         required: ["preliminares", "merito", "requerimentos"],
     },
@@ -199,13 +205,14 @@ ${data.oab || '[OAB/UF XXXXX]'}
     promptPlaceholder: 'Ex: Objeto: criação de um website institucional. Obrigações da Contratada: desenvolver o layout, programar as funcionalidades e entregar o site em 30 dias. Obrigações da Contratante: fornecer o conteúdo e aprovar o layout...',
     systemInstruction: `Você é um especialista em contratos. Gere o conteúdo para um contrato de prestação de serviços. A resposta DEVE ser um objeto JSON com os campos "objeto", "obrigacoes_contratada", "obrigacoes_contratante", "prazo_pagamento", "rescisao".`,
     responseSchema: {
-        type: 'OBJECT',
+        // Fix: Use `Type` enum.
+        type: Type.OBJECT,
         properties: {
-          objeto: { type: 'STRING', description: "Descrição clara e detalhada dos serviços que serão prestados." },
-          obrigacoes_contratada: { type: 'STRING', description: "Lista das responsabilidades e deveres da parte que prestará o serviço." },
-          obrigacoes_contratante: { type: 'STRING', description: "Lista das responsabilidades e deveres da parte que está contratando o serviço." },
-          prazo_pagamento: { type: 'STRING', description: "Define o prazo, a forma e as condições de pagamento do valor acordado." },
-          rescisao: { type: 'STRING', description: "Estabelece as condições sob as quais o contrato pode ser encerrado por qualquer uma das partes, incluindo possíveis multas." },
+          objeto: { type: Type.STRING, description: "Descrição clara e detalhada dos serviços que serão prestados." },
+          obrigacoes_contratada: { type: Type.STRING, description: "Lista das responsabilidades e deveres da parte que prestará o serviço." },
+          obrigacoes_contratante: { type: Type.STRING, description: "Lista das responsabilidades e deveres da parte que está contratando o serviço." },
+          prazo_pagamento: { type: Type.STRING, description: "Define o prazo, a forma e as condições de pagamento do valor acordado." },
+          rescisao: { type: Type.STRING, description: "Estabelece as condições sob as quais o contrato pode ser encerrado por qualquer uma das partes, incluindo possíveis multas." },
         },
         required: ["objeto", "obrigacoes_contratada", "obrigacoes_contratante", "prazo_pagamento", "rescisao"],
     },

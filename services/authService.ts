@@ -82,5 +82,39 @@ export const authService = {
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
     
     return updatedUser;
+  },
+
+  updateUserDetails: (email: string, details: Partial<Pick<User, 'name' | 'photoUrl'>>): User | null => {
+    const users = getUsers();
+    const userIndex = users.findIndex(u => u.email === email);
+    if (userIndex === -1) return null;
+
+    const updatedUser = { ...users[userIndex], ...details };
+    
+    users[userIndex] = updatedUser;
+    saveUsers(users);
+
+    const currentUser = authService.getCurrentUser();
+    if(currentUser && currentUser.email === email) {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+    }
+    
+    return updatedUser;
+  },
+  
+  deleteUser: (email: string): Promise<void> => {
+      return new Promise((resolve) => {
+          setTimeout(() => {
+              let users = getUsers();
+              users = users.filter(u => u.email !== email);
+              saveUsers(users);
+              
+              const currentUser = authService.getCurrentUser();
+              if(currentUser && currentUser.email === email) {
+                  authService.logout();
+              }
+              resolve();
+          }, 500);
+      });
   }
 };

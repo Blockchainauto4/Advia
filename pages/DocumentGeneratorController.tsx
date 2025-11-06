@@ -1,35 +1,36 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { DocumentGeneratorPage } from './DocumentGeneratorPage';
 import { documentConfigs } from '../configs/documentConfigs';
-import { generateDocument } from '../services/geminiService';
-import type { FormData } from '../types';
+import type { FormData, User } from '../types';
 import { useToast } from '../App';
+import { generateDocument } from '../services/geminiService';
+import { jsPDF } from 'jspdf';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
 
 
-export const DocumentGeneratorController: React.FC = () => {
-    const [docType, setDocType] = useState<string>('');
-    const [prompt, setPrompt] = useState<string>('');
+interface DocumentGeneratorControllerProps {
+    user: User | null;
+}
+
+export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerProps> = ({ user }) => {
+    const [docType, setDocType] = useState(documentConfigs[0].value);
+    const [prompt, setPrompt] = useState('');
     const [formData, setFormData] = useState<FormData>({});
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
     const [generatedData, setGeneratedData] = useState<FormData | null>(null);
-    const [isInitialState, setIsInitialState] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const showToast = useToast();
 
-    const currentConfig = documentConfigs.find(d => d.value === docType) || documentConfigs[0];
-
-    useEffect(() => {
-        // Reset form when docType changes
-        setPrompt('');
-        setFormData({});
-        setGeneratedData(null);
-        setError(null);
-        setIsInitialState(true);
-    }, [docType]);
+    const currentConfig = useMemo(() => documentConfigs.find(d => d.value === docType) || documentConfigs[0], [docType]);
+    const isInitialState = !generatedData && !isLoading && !error;
+    const isAllowed = !!user?.subscription;
 
     const handleDocTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setDocType(e.target.value);
+        // Reset everything on type change
+        handleClear();
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -38,14 +39,13 @@ export const DocumentGeneratorController: React.FC = () => {
     };
 
     const handleGenerate = async () => {
-        if (!docType || !prompt.trim()) {
-            setError('Por favor, selecione um tipo de documento e descreva a sua solicitação.');
+        if (!prompt.trim() || !docType) {
+            setError("Por favor, selecione um tipo de documento e descreva a consulta.");
             return;
         }
         setIsLoading(true);
         setError(null);
         setGeneratedData(null);
-        setIsInitialState(false);
 
         try {
             const stream = generateDocument(prompt, currentConfig.systemInstruction, currentConfig.responseSchema);
@@ -53,86 +53,101 @@ export const DocumentGeneratorController: React.FC = () => {
             for await (const chunk of stream) {
                 jsonString += chunk;
             }
-
-            // A Gemini API pode retornar o JSON dentro de um bloco de código markdown.
-            const cleanedJsonString = jsonString.replace(/^```json\n|```$/g, '');
-            const parsedData = JSON.parse(cleanedJsonString);
+            
+            const parsedData = JSON.parse(jsonString.trim().replace(/^```json\n|```$/g, ''));
             setGeneratedData(parsedData);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Falha ao processar a resposta da IA. Verifique o formato do JSON.';
-            setError(`Erro: ${errorMessage}`);
-            showToast({ type: 'error', message: 'Erro ao gerar documento.' });
+            setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
+            setGeneratedData(null);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const formattedDocumentText = generatedData
-        ? currentConfig.formatOutput({ ...formData, ...generatedData })
-        : currentConfig.formatOutput(formData);
-
     const handleClear = () => {
-        setDocType('');
         setPrompt('');
         setFormData({});
         setGeneratedData(null);
         setError(null);
-        setIsInitialState(true);
+        setIsLoading(false);
         if (isSpeaking) {
             window.speechSynthesis.cancel();
             setIsSpeaking(false);
         }
     };
-    
+
+    const formattedDocumentText = useMemo(() => {
+        if (!currentConfig || (!generatedData && !formData)) {
+            return 'Selecione um tipo de documento para começar.';
+        }
+        const combinedData = { ...formData, ...generatedData };
+        return currentConfig.formatOutput(combinedData);
+    }, [currentConfig, formData, generatedData]);
+
     const handleCopy = () => {
-        if (isInitialState || isLoading) return;
         navigator.clipboard.writeText(formattedDocumentText);
-        showToast({ type: 'success', message: 'Copiado para a área de transferência!' });
+        showToast({ type: 'success', message: 'Documento copiado para a área de transferência!' });
     };
-    
+
     const handleSaveDraft = () => {
-        if (isInitialState || isLoading) return;
-        showToast({ type: 'info', message: 'Rascunho salvo! (simulado)' });
+        showToast({ type: 'info', message: 'Funcionalidade de salvar rascunho em desenvolvimento.' });
     };
-    
+
     const handleExportPDF = () => {
-        showToast({ type: 'info', message: 'Exportar PDF em desenvolvimento.' });
+        try {
+            const doc = new jsPDF();
+            // Basic text splitting to handle multiple pages
+            const splitText = doc.splitTextToSize(formattedDocumentText, 180);
+            doc.text(splitText, 10, 10);
+            doc.save(`${currentConfig.label.replace(/\s/g, '_')}.pdf`);
+            showToast({ type: 'success', message: 'PDF exportado com sucesso!' });
+        } catch (e) {
+            showToast({ type: 'error', message: 'Falha ao exportar PDF.' });
+            console.error(e);
+        }
     };
     
     const handleSpeak = () => {
         if (isSpeaking) {
             window.speechSynthesis.cancel();
             setIsSpeaking(false);
-        } else if (!isInitialState && !isLoading) {
-            const utterance = new SpeechSynthesisUtterance(formattedDocumentText);
-            utterance.lang = 'pt-BR';
-            utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = () => setIsSpeaking(false);
-            window.speechSynthesis.speak(utterance);
-            setIsSpeaking(true);
+            return;
         }
+        
+        const utterance = new SpeechSynthesisUtterance(formattedDocumentText);
+        utterance.lang = 'pt-BR';
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => {
+            setIsSpeaking(false);
+            showToast({ type: 'error', message: 'Não foi possível reproduzir o áudio.' });
+        };
+        
+        window.speechSynthesis.speak(utterance);
+        setIsSpeaking(true);
     };
 
     return (
-        <DocumentGeneratorPage
-            docType={docType}
-            handleDocTypeChange={handleDocTypeChange}
-            prompt={prompt}
-            setPrompt={setPrompt}
-            formData={formData}
-            handleInputChange={handleInputChange}
-            currentConfig={currentConfig}
-            handleGenerate={handleGenerate}
-            isLoading={isLoading}
-            error={error}
-            isInitialState={isInitialState}
-            formattedDocumentText={formattedDocumentText}
-            handleCopy={handleCopy}
-            handleClear={handleClear}
-            handleSaveDraft={handleSaveDraft}
-            handleExportPDF={handleExportPDF}
-            handleSpeak={handleSpeak}
-            isSpeaking={isSpeaking}
-        />
+        <AccessControlOverlay isAllowed={isAllowed} featureName="Gerador de Documentos">
+            <DocumentGeneratorPage
+                docType={docType}
+                handleDocTypeChange={handleDocTypeChange}
+                prompt={prompt}
+                setPrompt={setPrompt}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                currentConfig={currentConfig}
+                handleGenerate={handleGenerate}
+                isLoading={isLoading}
+                error={error}
+                isInitialState={isInitialState}
+                formattedDocumentText={formattedDocumentText}
+                handleCopy={handleCopy}
+                handleClear={handleClear}
+                handleSaveDraft={handleSaveDraft}
+                handleExportPDF={handleExportPDF}
+                handleSpeak={handleSpeak}
+                isSpeaking={isSpeaking}
+            />
+        </AccessControlOverlay>
     );
 };

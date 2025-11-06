@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import type { Plan } from '../configs/planosConfig';
-import type { User } from '../types';
+// FIX: Import Plan type from the central types file.
+import type { Plan, User } from '../types';
 import { CreditCardIcon, LockClosedIcon, XMarkIcon } from './Icons';
+import { mercadoPagoService } from '../services/mercadoPagoService';
+import { useToast } from '../App';
+
 
 interface MercadoPagoCheckoutModalProps {
   plan: Plan;
@@ -24,6 +27,7 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCVC, setCardCVC] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const showToast = useToast();
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -36,19 +40,34 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
         return;
     }
 
     setIsProcessing(true);
+    
+    try {
+      // 1. Simula a chamada ao backend para criar a preferência de pagamento
+      const { preferenceId } = await mercadoPagoService.createPreference(plan, user);
 
-    // Simula o processamento do pagamento
-    setTimeout(() => {
-      onPaymentSuccess(plan.id);
-      // O fechamento do modal e o toast são tratados no App.tsx
-    }, 2000);
+      // 2. Em um app real, aqui você usaria o SDK do Mercado Pago com o preferenceId
+      // para renderizar o botão de pagamento ou redirecionar o usuário.
+      // Ex: const mp = new MercadoPago('PUBLIC_KEY'); mp.checkout({ preference: { id: preferenceId } });
+      console.log('[SIMULAÇÃO] Redirecionando para checkout do Mercado Pago com a preferência:', preferenceId);
+
+      // 3. Simula o usuário completando o pagamento no site do Mercado Pago e sendo redirecionado de volta.
+      setTimeout(() => {
+        onPaymentSuccess(plan.id);
+         // O fechamento do modal e o toast são tratados no App.tsx
+      }, 2000); // Simula o tempo que o usuário leva para pagar
+
+    } catch (error) {
+       console.error("Erro ao simular a criação da preferência:", error);
+       showToast({ type: 'error', message: 'Não foi possível iniciar o pagamento. Tente novamente.' });
+       setIsProcessing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -75,7 +94,7 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
                     <span className="text-gray-600"> a pagar hoje</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                    Após o teste, a cobrança anual de R${plan.price.toLocaleString('pt-BR')} será efetuada.
+                    Após o teste, a cobrança mensal de {plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} será efetuada.
                 </p>
             </div>
 

@@ -1,5 +1,9 @@
 {
   "name": "advocaciaai.com.br",
   "description": "AdvocaciaAI: Gerador de parecer jurídico, petição inicial, contestação e contratos com Inteligência Artificial. Otimize seu tempo e elabore documentos jurídicos precisos e profissionais.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera",
+    "geolocation",
+    "microphone"
+  ]
 }

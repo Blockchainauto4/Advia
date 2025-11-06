@@ -36,7 +36,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSend, i
                     placeholder="Digite sua pergunta aqui... (Shift+Enter para nova linha)"
                     rows={1}
                     disabled={isLoading}
-                    className="w-full bg-slate-100 border-slate-300 rounded-lg p-3 pr-12 text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-200"
+                    className="w-full bg-slate-100 border-slate-300 rounded-lg p-3 pr-12 text-sm text-slate-900 resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-200"
                     style={{ maxHeight: '150px' }}
                 />
                 <button

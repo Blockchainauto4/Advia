@@ -45,24 +45,42 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const handleSocialLogin = async (provider: string) => {
     setIsLoading(true);
     setError(null);
+
+    // --- NOTA DE IMPLEMENTAÇÃO ---
+    // A lógica abaixo é uma SIMULAÇÃO para fins de demonstração.
+    // Em uma aplicação real, a autenticação social (OAuth2) deve ser implementada.
+    // Isso geralmente envolve:
+    // 1. Usar uma biblioteca de cliente (ex: @react-oauth/google).
+    // 2. Chamar o popup de login da rede social.
+    // 3. Receber um token ou código de autorização.
+    // 4. Enviar esse código para um backend seguro, que o trocará por um token de acesso
+    //    usando o Client ID e o Client Secret (que NUNCA devem estar no frontend).
+    // 5. O backend valida o usuário, cria uma sessão e retorna para o frontend.
+
+    // As chaves (Client IDs) foram preparadas no arquivo vercel.json e devem ser
+    // configuradas como Environment Variables no painel da Vercel.
+    // Ex: process.env.GOOGLE_CLIENT_ID, process.env.FACEBOOK_APP_ID
+
+    console.log(`[SIMULAÇÃO] Iniciando login com ${provider}.`);
+    console.log(`[SIMULAÇÃO] Em um app real, usaríamos a chave para ${provider}, se configurada.`);
+
+    // Simulação de criação/login de usuário
     const mockEmail = `${provider.toLowerCase()}-user@advocacia.ai`;
     const mockPassword = 'mockPassword123'; // Senha simulada para o serviço
     const mockName = `Usuário ${provider}`;
 
     try {
-      // Tenta fazer o login primeiro. Se o usuário não existir, vai falhar.
+      // Tenta fazer o login primeiro.
       const user = await authService.login(mockEmail, mockPassword);
       onLoginSuccess(user);
     } catch (loginError) {
       try {
         // Se o login falhou, assume que o usuário precisa ser registrado.
         await authService.register(mockName, mockEmail, mockPassword);
-        // Agora, faz o login do usuário recém-registrado.
         const newUser = await authService.login(mockEmail, mockPassword);
         onLoginSuccess(newUser);
       } catch (registerError) {
-         // Se o registro também falhar, mostra o erro.
-         setError(registerError instanceof Error ? registerError.message : 'Erro no login social.');
+         setError(registerError instanceof Error ? registerError.message : 'Erro na simulação de login social.');
       }
     } finally {
       setIsLoading(false);
@@ -86,16 +104,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           {isRegistering && (
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome Completo</label>
-              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full px-3 py-2 bg-slate-50 border rounded-md" required />
+              <input type="text" id="name" value={name} onChange={e => setName(e.target.value)} className="mt-1 w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md" required />
             </div>
           )}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-mail</label>
-            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 bg-slate-50 border rounded-md" required />
+            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md" required />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Senha</label>
-            <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 w-full px-3 py-2 bg-slate-50 border rounded-md" required />
+            <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 w-full px-3 py-2 text-gray-900 bg-slate-50 border rounded-md" required />
           </div>
           
           {error && <p className="text-sm text-red-600 bg-red-100 p-2 rounded-md">{error}</p>}

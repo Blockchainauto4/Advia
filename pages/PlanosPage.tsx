@@ -1,8 +1,9 @@
 import React from 'react';
 import { CheckIcon, SparklesIcon } from '../components/Icons';
-import { planos, Plan } from '../configs/planosConfig';
+// FIX: Import Plan type from the central types file and combine type imports.
+import { planos } from '../configs/planosConfig';
+import type { User, Plan } from '../types';
 import { useCheckout, useNavigation } from '../App';
-import type { User } from '../types';
 import { useToast } from '../App';
 
 interface PlanosPageProps {
@@ -10,13 +11,13 @@ interface PlanosPageProps {
 }
 
 export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
-  const { openCheckoutModal } = useCheckout();
+  const { openCheckoutModal, openPixCheckoutModal } = useCheckout();
   const showToast = useToast();
   const { navigate } = useNavigation();
 
-  const handleSubscription = (plan: Plan) => {
+  const handleSubscription = (plan: Plan, method: 'card' | 'pix') => {
     if (!user) {
-      showToast({ type: 'info', message: 'Faça login para iniciar o teste.' });
+      showToast({ type: 'info', message: 'Faça login para continuar.' });
       navigate('#/auth');
       return;
     }
@@ -24,7 +25,12 @@ export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
       showToast({ type: 'info', message: 'Você já possui uma assinatura ativa.' });
       return;
     }
-    openCheckoutModal(plan);
+    
+    if (method === 'card') {
+      openCheckoutModal(plan);
+    } else {
+      openPixCheckoutModal(plan);
+    }
   };
 
   const userPlan = user?.subscription ? planos.find(p => p.id === user.subscription.planId) : null;
@@ -44,7 +50,7 @@ export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
         <>
           <div className="text-center mb-12">
             <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Planos Flexíveis para Potencializar sua Advocacia</h1>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Escolha o plano anual com desconto e tenha acesso a ferramentas de IA de ponta.</p>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Escolha o plano mensal e tenha acesso a ferramentas de IA de ponta.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -63,11 +69,11 @@ export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
                   <span className="text-lg font-bold text-indigo-600">Teste grátis por {plan.trialDays} dias</span>
                   <br />
                   <span className="text-5xl font-extrabold text-gray-900">
-                    R${(plan.price / 12).toFixed(0)}
+                    R${plan.price.toLocaleString('pt-BR')}
                   </span>
                   <span className="text-lg font-medium text-gray-500">/mês</span>
                   <p className="text-sm font-semibold text-gray-700 mt-1">
-                    Após o teste, pague R${plan.price.toLocaleString('pt-BR')} por ano
+                    Após o teste, a cobrança é mensal.
                   </p>
                 </div>
 
@@ -81,7 +87,7 @@ export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
                 </ul>
 
                 <button
-                  onClick={() => handleSubscription(plan)}
+                  onClick={() => handleSubscription(plan, 'card')}
                   className={`w-full font-bold py-3 px-6 rounded-lg transition-colors text-lg ${
                     plan.highlight 
                     ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
@@ -89,6 +95,18 @@ export const PlanosPage: React.FC<PlanosPageProps> = ({ user }) => {
                   }`}
                 >
                   Iniciar Teste Gratuito
+                </button>
+                <div className="relative flex py-4 items-center">
+                    <div className="flex-grow border-t border-slate-200"></div>
+                    <span className="flex-shrink mx-4 text-slate-400 text-xs">OU</span>
+                    <div className="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button
+                  onClick={() => handleSubscription(plan, 'pix')}
+                  className="w-full font-bold py-3 px-6 rounded-lg transition-colors text-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center justify-center"
+                >
+                  <img src="https://logospng.org/download/pix/logo-pix-1024.png" alt="Pix" className="w-5 h-5 mr-2" />
+                  Pagar com Pix
                 </button>
               </div>
             ))}

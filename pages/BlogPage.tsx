@@ -1,21 +1,55 @@
 import React from 'react';
-import { SparklesIcon, ClockIcon } from '../components/Icons';
+import { blogPosts } from '../configs/blogPosts';
+import { useNavigation } from '../App';
+import { UserCircleIcon, CalendarDaysIcon } from '../components/Icons';
 
-export const BlogPage = () => (
-    <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto text-center">
-            <div className="flex justify-center items-center gap-4 mb-6">
-                 <ClockIcon className="w-12 h-12 text-indigo-300" />
-                 <SparklesIcon className="w-16 h-16 text-indigo-500" />
+export const BlogPage: React.FC = () => {
+    const { navigate } = useNavigation();
+
+    return (
+        <main className="flex-grow bg-slate-100 py-12">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Blog AdvocaciaAI</h1>
+                    <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                        Artigos, insights e novidades sobre a intersecção entre Direito, tecnologia e Inteligência Artificial.
+                    </p>
+                </div>
+
+                <div className="max-w-4xl mx-auto space-y-10">
+                    {blogPosts.map((post) => (
+                        <article key={post.id} className="bg-white p-8 rounded-lg shadow-lg transition-shadow duration-300 hover:shadow-xl">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                                <a 
+                                    href={`#/blog/${post.id}`} 
+                                    onClick={(e) => { e.preventDefault(); navigate(`#/blog/${post.id}`); }}
+                                    className="hover:text-indigo-600 transition-colors"
+                                >
+                                    {post.title}
+                                </a>
+                            </h2>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
+                                <div className="flex items-center">
+                                    <UserCircleIcon className="w-4 h-4 mr-1.5" />
+                                    <span>{post.author}</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <CalendarDaysIcon className="w-4 h-4 mr-1.5" />
+                                    <time dateTime={new Date(post.date).toISOString()}>{new Date(post.date).toLocaleDateString('pt-BR')}</time>
+                                </div>
+                            </div>
+                            <p className="text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
+                            <a 
+                                href={`#/blog/${post.id}`} 
+                                onClick={(e) => { e.preventDefault(); navigate(`#/blog/${post.id}`); }}
+                                className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                            >
+                                Ler mais &rarr;
+                            </a>
+                        </article>
+                    ))}
+                </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Jurídico em Construção</h1>
-            <p className="text-gray-700 leading-relaxed max-w-2xl mx-auto">
-                Estamos preparando um espaço com artigos, notícias e dicas sobre a intersecção entre direito e tecnologia. Volte em breve para conferir insights que podem transformar sua prática jurídica.
-            </p>
-             <div className="mt-8 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <h3 className="font-semibold text-slate-800">Fique Atento!</h3>
-                <p className="text-sm text-slate-600">O conteúdo está sendo cuidadosamente elaborado por nossos especialistas.</p>
-            </div>
-        </div>
-    </main>
-);
+        </main>
+    );
+};

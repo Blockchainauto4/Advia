@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "generate:sitemap": "ts-node --esm ./scripts/generate-sitemap.ts",
+    "build": "npm run generate:sitemap && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -14,9 +15,11 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.3",
     "vite": "^5.3.3"
   }

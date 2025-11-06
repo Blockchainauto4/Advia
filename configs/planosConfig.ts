@@ -1,18 +1,11 @@
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string[];
-  highlight: boolean;
-  trialDays: number;
-}
+// FIX: Import Plan type from the central types file.
+import type { Plan } from '../types';
 
 export const planos: Plan[] = [
   {
-    id: 'basico_anual',
+    id: 'basico_mensal',
     name: 'Plano Básico',
-    price: 480,
+    price: 40,
     description: 'Ideal para estudantes e advogados em início de carreira.',
     features: [
       'Acesso ao Chat IA para consultas básicas',
@@ -24,9 +17,9 @@ export const planos: Plan[] = [
     trialDays: 3,
   },
   {
-    id: 'profissional_anual',
+    id: 'profissional_mensal',
     name: 'Plano Profissional',
-    price: 960,
+    price: 80,
     description: 'A melhor opção para advogados autônomos e pequenos escritórios.',
     features: [
       'Acesso Ilimitado ao Chat IA',
@@ -39,9 +32,9 @@ export const planos: Plan[] = [
     trialDays: 3,
   },
   {
-    id: 'premium_anual',
+    id: 'premium_mensal',
     name: 'Plano Premium',
-    price: 1800,
+    price: 150,
     description: 'Para escritórios que precisam de acesso irrestrito e suporte dedicado.',
     features: [
       'Acesso Ilimitado ao Chat IA',
