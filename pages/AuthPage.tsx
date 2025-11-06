@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { authService } from '../services/authService.ts';
-import { SparklesIcon, GoogleIcon, FacebookIcon, LinkedInIcon } from '../components/Icons.tsx';
+import { SparklesIcon } from '../components/Icons.tsx';
 import type { User } from '../types.ts';
 import { useToast } from '../App.tsx';
 
@@ -39,51 +39,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSocialLogin = async (provider: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    // --- NOTA DE IMPLEMENTAÇÃO ---
-    // A lógica abaixo é uma SIMULAÇÃO para fins de demonstração.
-    // Em uma aplicação real, a autenticação social (OAuth2) deve ser implementada.
-    // Isso geralmente envolve:
-    // 1. Usar uma biblioteca de cliente (ex: @react-oauth/google).
-    // 2. Chamar o popup de login da rede social.
-    // 3. Receber um token ou código de autorização.
-    // 4. Enviar esse código para um backend seguro, que o trocará por um token de acesso
-    //    usando o Client ID e o Client Secret (que NUNCA devem estar no frontend).
-    // 5. O backend valida o usuário, cria uma sessão e retorna para o frontend.
-
-    // As chaves (Client IDs) foram preparadas no arquivo vercel.json e devem ser
-    // configuradas como Environment Variables no painel da Vercel.
-    // Ex: process.env.GOOGLE_CLIENT_ID, process.env.FACEBOOK_APP_ID
-
-    console.log(`[SIMULAÇÃO] Iniciando login com ${provider}.`);
-    console.log(`[SIMULAÇÃO] Em um app real, usaríamos a chave para ${provider}, se configurada.`);
-
-    // Simulação de criação/login de usuário
-    const mockEmail = `${provider.toLowerCase()}-user@advocacia.ai`;
-    const mockPassword = 'mockPassword123'; // Senha simulada para o serviço
-    const mockName = `Usuário ${provider}`;
-
-    try {
-      // Tenta fazer o login primeiro.
-      const user = await authService.login(mockEmail, mockPassword);
-      onLoginSuccess(user);
-    } catch (loginError) {
-      try {
-        // Se o login falhou, assume que o usuário precisa ser registrado.
-        await authService.register(mockName, mockEmail, mockPassword);
-        const newUser = await authService.login(mockEmail, mockPassword);
-        onLoginSuccess(newUser);
-      } catch (registerError) {
-         setError(registerError instanceof Error ? registerError.message : 'Erro na simulação de login social.');
-      }
     } finally {
       setIsLoading(false);
     }
@@ -145,31 +100,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             )}
           </button>
         </form>
-        
-        {formMode !== 'forgotPassword' && (
-            <>
-                <div className="relative flex py-5 items-center">
-                    <div className="flex-grow border-t border-slate-300"></div>
-                    <span className="flex-shrink mx-4 text-slate-500 text-sm">OU</span>
-                    <div className="flex-grow border-t border-slate-300"></div>
-                </div>
-
-                <div className="space-y-3">
-                    <button type="button" onClick={() => handleSocialLogin('Google')} disabled={isLoading} className="w-full inline-flex items-center justify-center py-2 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                        <GoogleIcon className="w-5 h-5 mr-2" />
-                        <span>Entrar com Google</span>
-                    </button>
-                    <button type="button" onClick={() => handleSocialLogin('Facebook')} disabled={isLoading} className="w-full inline-flex items-center justify-center py-2 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                        <FacebookIcon className="w-5 h-5 mr-2 text-[#1877F2]" />
-                        <span>Entrar com Facebook</span>
-                    </button>
-                    <button type="button" onClick={() => handleSocialLogin('LinkedIn')} disabled={isLoading} className="w-full inline-flex items-center justify-center py-2 px-4 border border-slate-300 rounded-md shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                        <LinkedInIcon className="w-5 h-5 mr-2 text-[#0A66C2]" />
-                        <span>Entrar com LinkedIn</span>
-                    </button>
-                </div>
-            </>
-        )}
 
         <div className="text-center mt-6">
           {formMode === 'forgotPassword' ? (

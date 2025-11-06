@@ -88,3 +88,15 @@ export interface Campaign {
   createdAt: string;
   scheduledAt?: string;
 }
+
+export interface WhatsAppGroup {
+  name: string;
+  description: string;
+  link: string;
+}
+
+export interface StateGroups {
+  stateName: string;
+  uf: string;
+  groups: WhatsAppGroup[];
+}

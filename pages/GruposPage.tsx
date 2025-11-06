@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
-import { gruposPorEstado } from '../configs/gruposConfig.ts';
+import React, { useState, useEffect } from 'react';
+import { gruposService } from '../services/gruposService.ts';
+import type { StateGroups } from '../types.ts';
 import { WhatsAppIcon, ChevronDownIcon } from '../components/Icons.tsx';
 
 export const GruposPage: React.FC = () => {
     const [openState, setOpenState] = useState<string | null>(null);
+    const [grupos, setGrupos] = useState<StateGroups[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchGrupos = async () => {
+            setIsLoading(true);
+            const data = await gruposService.getGruposPorEstado();
+            setGrupos(data);
+            setIsLoading(false);
+        };
+        fetchGrupos();
+    }, []);
 
     const toggleState = (uf: string) => {
         if (openState === uf) {
@@ -24,53 +37,58 @@ export const GruposPage: React.FC = () => {
                 </div>
 
                 <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-                    <div className="space-y-2">
-                        {gruposPorEstado.map((estado) => (
-                            <div key={estado.uf} className="border-b last:border-b-0">
-                                <button
-                                    onClick={() => toggleState(estado.uf)}
-                                    className="w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-gray-800 hover:bg-slate-50"
-                                    aria-expanded={openState === estado.uf}
-                                >
-                                    <span>{estado.stateName} ({estado.uf})</span>
-                                    <ChevronDownIcon
-                                        className={`w-6 h-6 text-gray-500 transition-transform ${
-                                            openState === estado.uf ? 'rotate-180' : ''
-                                        }`}
-                                    />
-                                </button>
-                                {openState === estado.uf && (
-                                    <div className="p-4 bg-slate-50">
-                                        {estado.groups.length > 0 ? (
-                                            <div className="space-y-4">
-                                                {estado.groups.map((group, index) => (
-                                                    <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-4 rounded-md border shadow-sm">
-                                                        <div className="flex items-start mb-3 sm:mb-0">
-                                                            <WhatsAppIcon className="w-8 h-8 text-green-500 mr-4 flex-shrink-0 mt-1" />
-                                                            <div>
-                                                                <h3 className="font-bold text-gray-900">{group.name}</h3>
-                                                                <p className="text-sm text-gray-600">{group.description}</p>
+                    {isLoading ? (
+                        <div className="text-center text-slate-500 p-8">Carregando grupos...</div>
+                    ) : (
+                        <div className="space-y-2">
+                            {grupos.map((estado) => (
+                                <div key={estado.uf} className="border-b last:border-b-0">
+                                    <button
+                                        onClick={() => toggleState(estado.uf)}
+                                        className="w-full flex justify-between items-center p-4 text-left font-semibold text-lg text-gray-800 hover:bg-slate-50"
+                                        aria-expanded={openState === estado.uf}
+                                    >
+                                        <span>{estado.stateName} ({estado.uf})</span>
+                                        <ChevronDownIcon
+                                            className={`w-6 h-6 text-gray-500 transition-transform ${
+                                                openState === estado.uf ? 'rotate-180' : ''
+                                            }`}
+                                        />
+                                    </button>
+                                    {openState === estado.uf && (
+                                        <div className="p-4 bg-slate-50">
+                                            {estado.groups.length > 0 ? (
+                                                <div className="space-y-4">
+                                                    {estado.groups.map((group, index) => (
+                                                        <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-4 rounded-md border shadow-sm">
+                                                            <div className="flex items-start mb-3 sm:mb-0">
+                                                                <WhatsAppIcon className="w-8 h-8 text-green-500 mr-4 flex-shrink-0 mt-1" />
+                                                                <div>
+                                                                    <h3 className="font-bold text-gray-900">{group.name}</h3>
+                                                                    <p className="text-sm text-gray-600">{group.description}</p>
+                                                                </div>
                                                             </div>
+                                                            <a
+                                                                href={group.link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`flex-shrink-0 bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition-colors text-sm ${!group.link ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                onClick={(e) => !group.link && e.preventDefault()}
+                                                            >
+                                                                {group.link ? 'Entrar no Grupo' : 'Link Indisponível'}
+                                                            </a>
                                                         </div>
-                                                        <a
-                                                            href={group.link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex-shrink-0 bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition-colors text-sm"
-                                                        >
-                                                            Entrar no Grupo
-                                                        </a>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-gray-500 text-center">Nenhum grupo cadastrado para este estado no momento.</p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-500 text-center">Nenhum grupo cadastrado para este estado no momento.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="max-w-4xl mx-auto mt-8 text-center">

@@ -99,7 +99,6 @@ export const generateSocialMediaPost = async (theme: string, platform: string, t
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
-// FIX: Removed `nullable: true` as it is not a valid property in the response schema.
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {

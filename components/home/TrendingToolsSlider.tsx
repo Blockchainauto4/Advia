@@ -43,8 +43,6 @@ const trendingTools = [
 export const TrendingToolsSlider: React.FC = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const { navigate } = useNavigation();
-    // FIX: Use ReturnType<typeof setTimeout> for portability between environments (browser/Node.js).
-    // This resolves the "Cannot find namespace 'NodeJS'" error in a browser-only context.
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resetTimeout = useCallback(() => {
