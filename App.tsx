@@ -52,7 +52,7 @@ export const useCheckout = () => useContext(CheckoutContext)!;
 
 const App: React.FC = () => {
     const [user, setUser] = useState<User | null>(authService.getCurrentUser());
-    const [currentPage, setCurrentPage] = useState(window.location.hash || '#/home');
+    const [currentPage, setCurrentPage] = useState('#/home');
     const [toast, setToast] = useState<ToastInfo>(null);
 
     // Checkout Modal State
@@ -61,25 +61,9 @@ const App: React.FC = () => {
     const [isPixModalOpen, setIsPixModalOpen] = useState(false);
 
     const navigate = useCallback((path: string) => {
-        window.location.hash = path;
+        window.scrollTo(0, 0); // Scroll to top on every navigation.
+        setCurrentPage(path);
     }, []);
-
-    useEffect(() => {
-        const handleHashChange = () => {
-            window.scrollTo(0, 0); // FIX: Scroll to top on every navigation.
-            setCurrentPage(window.location.hash || '#/home');
-        };
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []);
-    
-    useEffect(() => {
-      // On initial load or page refresh, if there's a hash, go to it.
-      // Otherwise, redirect to home.
-      if (!window.location.hash) {
-          navigate('#/home');
-      }
-    }, [navigate]);
 
     const handleLoginSuccess = (loggedInUser: User) => {
         setUser(loggedInUser);
