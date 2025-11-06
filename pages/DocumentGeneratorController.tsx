@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { DocumentGeneratorPage } from './DocumentGeneratorPage';
-import { documentConfigs } from '../configs/documentConfigs';
-import type { FormData, User } from '../types';
-import { useToast } from '../App';
-import { generateDocument } from '../services/geminiService';
+import { DocumentGeneratorPage } from './DocumentGeneratorPage.tsx';
+import { documentConfigs } from '../configs/documentConfigs.ts';
+import type { FormData, User } from '../types.ts';
+import { useToast } from '../App.tsx';
+import { generateDocument } from '../services/geminiService.ts';
 import { jsPDF } from 'jspdf';
 
 interface DocumentGeneratorControllerProps {
@@ -22,7 +22,7 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
 
     const currentConfig = useMemo(() => documentConfigs.find(d => d.value === docType) || documentConfigs[0], [docType]);
     const isInitialState = !generatedData && !isLoading && !error;
-    const isAllowed = !!user?.subscription;
+    const isAllowed = !!user;
 
     const handleDocTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setDocType(e.target.value);

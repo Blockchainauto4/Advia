@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { TwitterIcon, LinkedInIcon, SparklesIcon } from '../Icons';
-import { useNavigation } from '../../App';
+import { TwitterIcon, LinkedInIcon, SparklesIcon } from '../Icons.tsx';
+import { useNavigation } from '../../App.tsx';
 
 const FooterLink: React.FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
   const { navigate } = useNavigation();
@@ -60,8 +59,8 @@ export const Footer: React.FC = () => {
                         <ul className="space-y-3 text-sm">
                             <FooterLink href="#/quem-somos">Quem Somos</FooterLink>
                             <FooterLink href="#/blog">Blog</FooterLink>
+                            <FooterLink href="#/grupos">Grupos de WhatsApp</FooterLink>
                             <FooterLink href="#/contato">Contato</FooterLink>
-                            <FooterLink href="#/planos">Planos</FooterLink>
                         </ul>
                     </div>
                     

@@ -1,6 +1,6 @@
 import React from 'react';
-import { SparklesIcon, UserCircleIcon } from '../Icons';
-import { ChatMessage as ChatMessageType } from '../../types';
+import { SparklesIcon, UserCircleIcon } from '../Icons.tsx';
+import { ChatMessage as ChatMessageType } from '../../types.ts';
 
 interface ChatMessageProps {
     message: ChatMessageType;

@@ -1,5 +1,5 @@
 // services/socialApiService.ts
-import type { SocialPost } from '../types';
+import type { SocialPost } from '../types.ts';
 
 // ATENÇÃO: Este é um serviço de simulação.
 // A integração real com APIs de redes sociais (TikTok, Instagram, etc.)

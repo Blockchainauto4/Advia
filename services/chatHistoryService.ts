@@ -1,5 +1,5 @@
 // services/chatHistoryService.ts
-import type { Conversation, ChatMessage } from '../types';
+import type { Conversation, ChatMessage } from '../types.ts';
 
 const HISTORY_KEY = 'advocaciaai_chat_history';
 

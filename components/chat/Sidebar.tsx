@@ -1,7 +1,7 @@
 import React from 'react';
-import { assistants } from '../../configs/assistantsConfig';
-import { PlusIcon, TrashIcon } from '../Icons';
-import type { Conversation } from '../../types';
+import { assistants } from '../../configs/assistantsConfig.ts';
+import { PlusIcon, TrashIcon, XMarkIcon } from '../Icons.tsx';
+import type { Conversation } from '../../types.ts';
 
 interface SidebarProps {
     selectedAssistantId: string;
@@ -11,6 +11,8 @@ interface SidebarProps {
     onLoadConversation: (id: string) => void;
     onDeleteConversation: (id: string) => void;
     onNewConversation: () => void;
+    isMobileOpen: boolean;
+    onClose: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -21,6 +23,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onLoadConversation,
     onDeleteConversation,
     onNewConversation,
+    isMobileOpen,
+    onClose,
 }) => {
     const handleDelete = (e: React.MouseEvent, conversationId: string) => {
         e.stopPropagation(); // Prevent onLoadConversation from firing
@@ -29,17 +33,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
     };
 
-    return (
-        <aside className="w-64 bg-slate-800 text-gray-300 flex-col p-4 hidden md:flex">
-            <button
-                onClick={onNewConversation}
-                className="w-full flex items-center justify-center text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition-colors mb-6"
-            >
-                <PlusIcon className="w-5 h-5 mr-2" />
-                Nova Conversa
-            </button>
-
-            <div className="flex-grow overflow-y-auto">
+    const SidebarContent = () => (
+        <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center p-4 md:hidden">
+                <h2 className="text-lg font-semibold text-white">Menu</h2>
+                <button onClick={onClose} aria-label="Fechar menu">
+                    <XMarkIcon className="w-6 h-6 text-gray-300 hover:text-white" />
+                </button>
+            </div>
+            <div className="p-4 pt-0 md:pt-4">
+                 <button
+                    onClick={onNewConversation}
+                    className="w-full flex items-center justify-center text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition-colors mb-6"
+                >
+                    <PlusIcon className="w-5 h-5 mr-2" />
+                    Nova Conversa
+                </button>
+            </div>
+            <div className="flex-grow overflow-y-auto px-4">
                 {/* History Section */}
                 <h2 className="text-xs font-bold uppercase text-gray-400 mb-2 px-2">Histórico</h2>
                 <nav className="mb-6">
@@ -65,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         })}
                     </ul>
                      {conversations.length === 0 && (
-                        <p className="text-xs text-slate-500 px-2">Nenhuma conversa salva para este assistente.</p>
+                        <p className="text-xs text-slate-500 px-2">Nenhuma conversa salva.</p>
                     )}
                 </nav>
 
@@ -75,7 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <ul>
                         {assistants.map((assistant) => {
                             const Icon = assistant.icon;
-                            // Assistant selection doesn't depend on active chat, but on the category.
                             const isAssistantActive = assistant.id === selectedAssistantId;
                             return (
                                 <li key={assistant.id}>
@@ -95,9 +105,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </nav>
             </div>
             
-            <div className="text-xs text-slate-500 text-center mt-4">
+            <div className="text-xs text-slate-500 text-center p-4">
                 <p>&copy; {new Date().getFullYear()} advocaciaai.com.br</p>
             </div>
-        </aside>
+        </div>
+    );
+    
+    return (
+        <>
+            {/* Mobile Sidebar */}
+            <div
+                className={`fixed inset-0 z-40 md:hidden transition-opacity ${
+                    isMobileOpen ? 'bg-black bg-opacity-50' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={onClose}
+                aria-hidden="true"
+            />
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 text-gray-300 transform transition-transform ease-in-out md:hidden ${
+                    isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <SidebarContent />
+            </aside>
+
+            {/* Desktop Sidebar */}
+            <aside className="w-64 bg-slate-800 text-gray-300 hidden md:flex">
+                <SidebarContent />
+            </aside>
+        </>
     );
 };

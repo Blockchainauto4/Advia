@@ -1,8 +1,8 @@
 import React from 'react';
-import type { FormData } from '../types';
-import { documentConfigs, DocumentConfig } from '../configs/documentConfigs';
-import { SparklesIcon, ClipboardIcon, TrashIcon, ArrowDownTrayIcon, SaveIcon, SpeakerWaveIcon, StopIcon } from '../components/Icons';
-import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import type { FormData } from '../types.ts';
+import { documentConfigs, DocumentConfig } from '../configs/documentConfigs.ts';
+import { SparklesIcon, ClipboardIcon, TrashIcon, ArrowDownTrayIcon, SaveIcon, SpeakerWaveIcon, StopIcon } from '../components/Icons.tsx';
+import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
 
 interface InputFieldProps {
   label: string;
@@ -153,7 +153,7 @@ export const DocumentGeneratorPage: React.FC<DocumentGeneratorPageProps> = ({
 
           {/* Right Column: Output */}
           <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <h2 className="text-2xl font-bold text-gray-900">Documento Gerado</h2>
               {/* Action Buttons */}
               <div className="flex space-x-2">

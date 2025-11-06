@@ -1,5 +1,5 @@
 import React from 'react';
-import { useToast, useNavigation } from '../App';
+import { useToast, useNavigation } from '../App.tsx';
 
 export const ContatoPage: React.FC = () => {
     const showToast = useToast();
@@ -44,7 +44,6 @@ export const ContatoPage: React.FC = () => {
                             <h3 className="text-xl font-semibold text-indigo-700 mb-2">Navegação</h3>
                             <ul className="list-disc list-inside">
                                 <li><a href="#/quem-somos" onClick={(e) => { e.preventDefault(); navigate('#/quem-somos'); }} className="text-indigo-600 hover:underline">Sobre Nós</a></li>
-                                <li><a href="#/planos" onClick={(e) => { e.preventDefault(); navigate('#/planos'); }} className="text-indigo-600 hover:underline">Nossos Planos</a></li>
                                 <li><a href="#/termos" onClick={(e) => { e.preventDefault(); navigate('#/termos'); }} className="text-indigo-600 hover:underline">Termos de Serviço</a></li>
                             </ul>
                         </div>

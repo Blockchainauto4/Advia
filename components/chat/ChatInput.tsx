@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { PaperAirplaneIcon } from '../Icons';
+import { PaperAirplaneIcon } from '../Icons.tsx';
 
 interface ChatInputProps {
     value: string;

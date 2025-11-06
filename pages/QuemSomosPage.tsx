@@ -1,5 +1,5 @@
 import React from 'react';
-import { SparklesIcon, LinkedInIcon } from '../components/Icons';
+import { SparklesIcon, LinkedInIcon } from '../components/Icons.tsx';
 
 export const QuemSomosPage = () => (
     <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">

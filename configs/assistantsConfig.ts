@@ -1,6 +1,6 @@
 import React from 'react';
-import { Assistant } from '../types';
-import { SparklesIcon, ScaleIcon, BriefcaseIcon, GavelIcon, CalculatorIcon } from '../components/Icons';
+import { Assistant } from '../types.ts';
+import { SparklesIcon, ScaleIcon, BriefcaseIcon, GavelIcon, CalculatorIcon } from '../components/Icons.tsx';
 
 export const assistants: Assistant[] = [
     {

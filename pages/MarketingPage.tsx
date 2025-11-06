@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { SocialPost, User } from '../types';
-import { useToast } from '../App';
-import { generateContentCalendar, generateSocialMediaPost, generateVideoFromPost } from '../services/geminiService';
-import { socialApiService } from '../services/socialApiService';
-import { marketingHistoryService } from '../services/marketingHistoryService';
-import { AccessControlOverlay } from '../components/AccessControlOverlay';
-import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, ShareIcon, TrashIcon, VideoCameraIcon, ArrowPathIcon } from '../components/Icons';
+import type { SocialPost, User, Campaign } from '../types.ts';
+import { useToast } from '../App.tsx';
+import { generateContentCalendar, generateSocialMediaPost, generateVideoFromPost, generateWhatsAppImage } from '../services/geminiService.ts';
+import { socialApiService } from '../services/socialApiService.ts';
+import { marketingHistoryService } from '../services/marketingHistoryService.ts';
+import { whatsappCampaignService } from '../services/whatsappCampaignService.ts';
+import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
+import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, ShareIcon, TrashIcon, VideoCameraIcon, ArrowPathIcon, WhatsAppIcon, ArrowDownTrayIcon, PaperAirplaneIcon } from '../components/Icons.tsx';
 
-type Tab = 'calendar' | 'post' | 'history';
+type Tab = 'calendar' | 'post' | 'history' | 'whatsapp' | 'whatsapp-campaign';
 
 interface MarketingPageProps {
     user: User | null;
@@ -19,7 +20,7 @@ const tones = ['Formal', 'Informativo', 'Acessível', 'Persuasivo', 'Empático']
 // --- Main Component ---
 export const MarketingPage: React.FC<MarketingPageProps> = ({ user }) => {
     const [activeTab, setActiveTab] = useState<Tab>('post');
-    const isAllowed = !!user?.subscription;
+    const isAllowed = !!user;
 
     return (
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -30,9 +31,11 @@ export const MarketingPage: React.FC<MarketingPageProps> = ({ user }) => {
             
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <div className="border-b border-gray-200 mb-6">
-                    <nav className="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                    <nav className="-mb-px flex space-x-2 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
                         <TabButton id="post" activeTab={activeTab} setActiveTab={setActiveTab} icon={<DocumentTextIcon className="w-5 h-5 mr-2" />}>Gerar Post</TabButton>
-                        <TabButton id="calendar" activeTab={activeTab} setActiveTab={setActiveTab} icon={<CalendarDaysIcon className="w-5 h-5 mr-2" />}>Calendário de Conteúdo</TabButton>
+                        <TabButton id="calendar" activeTab={activeTab} setActiveTab={setActiveTab} icon={<CalendarDaysIcon className="w-5 h-5 mr-2" />}>Calendário</TabButton>
+                        <TabButton id="whatsapp" activeTab={activeTab} setActiveTab={setActiveTab} icon={<WhatsAppIcon className="w-5 h-5 mr-2" />}>Imagem WhatsApp</TabButton>
+                        <TabButton id="whatsapp-campaign" activeTab={activeTab} setActiveTab={setActiveTab} icon={<PaperAirplaneIcon className="w-5 h-5 mr-2" />}>Campanhas WhatsApp</TabButton>
                         <TabButton id="history" activeTab={activeTab} setActiveTab={setActiveTab} icon={<ClockIcon className="w-5 h-5 mr-2" />}>Histórico</TabButton>
                     </nav>
                 </div>
@@ -41,6 +44,8 @@ export const MarketingPage: React.FC<MarketingPageProps> = ({ user }) => {
                     <AccessControlOverlay isAllowed={isAllowed} featureName="Marketing Jurídico com IA">
                         {activeTab === 'post' && <PostGenerator />}
                         {activeTab === 'calendar' && <CalendarGenerator />}
+                        {activeTab === 'whatsapp' && <WhatsAppImageGenerator />}
+                        {activeTab === 'whatsapp-campaign' && <WhatsAppCampaigns />}
                         {activeTab === 'history' && <HistoryViewer />}
                     </AccessControlOverlay>
                 </div>
@@ -60,7 +65,7 @@ const TabButton: React.FC<{id: Tab, activeTab: Tab, setActiveTab: (t: Tab) => vo
             activeTab === id
             ? 'border-indigo-500 text-indigo-600'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition-colors`}
+        } whitespace-nowrap py-4 px-2 sm:px-4 border-b-2 font-medium text-sm flex items-center transition-colors`}
     >
         {icon} {children}
     </button>
@@ -204,6 +209,251 @@ const CalendarGenerator = () => {
         </div>
     );
 };
+
+const promotionalTools = [
+    { name: 'Calculadoras de Prazos', description: 'Nunca mais perca um prazo processual.' },
+    { name: 'Gerador de Petições', description: 'Crie petições iniciais completas em minutos.' },
+    { name: 'Chat Jurídico com IA', description: 'Tire suas dúvidas jurídicas instantaneamente.' },
+    { name: 'Cálculo de Rescisão', description: 'Calcule verbas rescisórias de forma rápida e precisa.' },
+    { name: 'Marketing Jurídico', description: 'Gere posts e vídeos para suas redes sociais.' },
+    { name: 'Consulta de Placas', description: 'Consulte veículos e receba análise da IA.' }
+];
+
+const WhatsAppImageGenerator = () => {
+    const [selectedTool, setSelectedTool] = useState(promotionalTools[0].name);
+    const [isLoading, setIsLoading] = useState(false);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const showToast = useToast();
+
+    const handleGenerate = async () => {
+        setIsLoading(true);
+        setGeneratedImage(null);
+        try {
+            const tool = promotionalTools.find(t => t.name === selectedTool);
+            if (!tool) throw new Error("Ferramenta selecionada é inválida.");
+
+            const imageBase64 = await generateWhatsAppImage(tool.name, tool.description);
+            setGeneratedImage(imageBase64);
+        } catch (error) {
+            showToast({ type: 'error', message: error instanceof Error ? error.message : 'Falha ao gerar imagem.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDownload = () => {
+        if (!generatedImage) return;
+        const link = document.createElement('a');
+        link.href = `data:image/jpeg;base64,${generatedImage}`;
+        link.download = 'divulgacao-advocacia-ai.jpeg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    
+    const base64ToFile = async (base64: string, filename: string, mimeType: string): Promise<File> => {
+        const res = await fetch(`data:${mimeType};base64,${base64}`);
+        const blob = await res.blob();
+        return new File([blob], filename, { type: mimeType });
+    }
+
+    const handleShare = async () => {
+        if (!generatedImage) return;
+
+        try {
+            const file = await base64ToFile(generatedImage, 'divulgacao-advocacia-ai.jpeg', 'image/jpeg');
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Conheça a AdvocaciaAI',
+                    text: `Experimente a ferramenta ${selectedTool}! Acesse advocaciaai.com.br`,
+                });
+            } else {
+                showToast({ type: 'info', message: 'Seu navegador não suporta compartilhamento direto. Baixe a imagem e compartilhe.' });
+            }
+        } catch(error) {
+            console.error("Share failed:", error);
+            showToast({ type: 'error', message: 'O compartilhamento falhou.' });
+        }
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+                <div>
+                    <label htmlFor="tool" className="block text-sm font-medium text-gray-700">Ferramenta para Divulgar</label>
+                    <select id="tool" value={selectedTool} onChange={e => setSelectedTool(e.target.value)} className="mt-1 w-full p-2 border rounded-md bg-white">
+                        {promotionalTools.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                    </select>
+                </div>
+                <button onClick={handleGenerate} disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 flex justify-center items-center">
+                    {isLoading ? 'Gerando Imagem...' : <><SparklesIcon className="w-5 h-5 mr-2" /> Gerar Imagem</>}
+                </button>
+                 {generatedImage && (
+                    <div className="border-t pt-4 space-y-3">
+                        <button onClick={handleDownload} className="w-full bg-slate-600 text-white font-bold py-2 px-4 rounded-md hover:bg-slate-700 flex justify-center items-center">
+                            <ArrowDownTrayIcon className="w-5 h-5 mr-2" /> Baixar Imagem
+                        </button>
+                        <button onClick={handleShare} className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 flex justify-center items-center">
+                            <WhatsAppIcon className="w-5 h-5 mr-2" /> Compartilhar no WhatsApp
+                        </button>
+                    </div>
+                 )}
+            </div>
+            <div className="bg-slate-50 p-4 rounded-lg border min-h-[400px] flex items-center justify-center">
+                {isLoading && <LoadingSpinner text="A IA está criando sua imagem..." />}
+                {generatedImage && <img src={`data:image/jpeg;base64,${generatedImage}`} alt="Imagem de divulgação gerada" className="max-h-full max-w-full object-contain rounded-md shadow-lg" />}
+                {!isLoading && !generatedImage && <div className="text-center text-slate-500">A imagem para divulgação aparecerá aqui.</div>}
+            </div>
+        </div>
+    );
+};
+
+const WhatsAppCampaigns = () => {
+    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [name, setName] = useState('');
+    const [message, setMessage] = useState('');
+    const [recipients, setRecipients] = useState(1);
+    const [scheduleDate, setScheduleDate] = useState('');
+    const [scheduleTime, setScheduleTime] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const showToast = useToast();
+
+    const fetchCampaigns = useCallback(async () => {
+        const data = await whatsappCampaignService.getCampaigns();
+        setCampaigns(data);
+    }, []);
+
+    useEffect(() => {
+        fetchCampaigns();
+    }, [fetchCampaigns]);
+
+    const handleCreateCampaign = async () => {
+        if (!name.trim() || !message.trim() || recipients < 1) {
+            showToast({ type: 'error', message: 'Preencha todos os campos da campanha.' });
+            return;
+        }
+        setIsLoading(true);
+        const scheduledAt = scheduleDate && scheduleTime ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() : undefined;
+        try {
+            await whatsappCampaignService.createCampaign(name, message, recipients, scheduledAt);
+            showToast({ type: 'success', message: 'Campanha criada e agendada!' });
+            // Reset form
+            setName('');
+            setMessage('');
+            setRecipients(1);
+            setScheduleDate('');
+            setScheduleTime('');
+            fetchCampaigns();
+        } catch (error) {
+            showToast({ type: 'error', message: 'Falha ao criar campanha.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleSendCampaign = async (campaignId: string) => {
+        setCampaigns(campaigns.map(c => c.id === campaignId ? { ...c, status: 'sending' } : c));
+        try {
+            await whatsappCampaignService.sendCampaign(campaignId);
+            showToast({ type: 'success', message: 'Campanha enviada com sucesso!' });
+        } catch (error) {
+             showToast({ type: 'error', message: error instanceof Error ? error.message : 'Falha ao enviar campanha.' });
+        } finally {
+            fetchCampaigns();
+        }
+    };
+
+    const handleDeleteCampaign = async (campaignId: string) => {
+        if (window.confirm('Tem certeza que deseja excluir esta campanha?')) {
+            await whatsappCampaignService.deleteCampaign(campaignId);
+            showToast({ type: 'info', message: 'Campanha excluída.' });
+            fetchCampaigns();
+        }
+    };
+
+    const getStatusChip = (status: Campaign['status']) => {
+        const styles = {
+            draft: 'bg-slate-200 text-slate-700',
+            sending: 'bg-blue-100 text-blue-700 animate-pulse',
+            sent: 'bg-green-100 text-green-700',
+            failed: 'bg-red-100 text-red-700',
+        };
+        const text = {
+            draft: 'Agendada',
+            sending: 'Enviando...',
+            sent: 'Enviada',
+            failed: 'Falhou',
+        }
+        return <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles[status]}`}>{text[status]}</span>;
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Form */}
+            <div className="lg:col-span-1 space-y-4">
+                <h3 className="text-xl font-bold">Nova Campanha</h3>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Nome da Campanha</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Lembrete de Audiência" className="mt-1 w-full p-2 border rounded-md"/>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Mensagem</label>
+                    <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5} placeholder="Olá, {nome}! Lembre-se da audiência amanhã..." className="mt-1 w-full p-2 border rounded-md"></textarea>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Nº de Grupos/Contatos</label>
+                    <input type="number" value={recipients} onChange={e => setRecipients(Math.max(1, parseInt(e.target.value) || 1))} className="mt-1 w-full p-2 border rounded-md"/>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Data de Envio</label>
+                        <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Hora de Envio</label>
+                        <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                    </div>
+                </div>
+                <button onClick={handleCreateCampaign} disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 flex justify-center items-center">
+                    {isLoading ? 'Agendando...' : <><ClockIcon className="w-5 h-5 mr-2" /> Agendar Campanha</>}
+                </button>
+                 <p className="text-xs text-slate-500 text-center italic">Atenção: Esta é uma ferramenta de simulação. Nenhum envio real será efetuado.</p>
+            </div>
+            {/* List */}
+            <div className="lg:col-span-2 bg-slate-50 p-4 rounded-lg border min-h-[500px]">
+                <h3 className="text-xl font-bold mb-4">Campanhas Agendadas</h3>
+                {campaigns.length === 0 && <div className="text-center text-slate-500 pt-16">Nenhuma campanha criada ainda.</div>}
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {campaigns.map(c => (
+                        <div key={c.id} className="bg-white p-4 rounded-md border shadow-sm">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold text-gray-800">{c.name}</p>
+                                    <p className="text-xs text-slate-500">{c.recipientCount} destinatários</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {getStatusChip(c.status)}
+                                    <button onClick={() => handleDeleteCampaign(c.id)} className="text-slate-400 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-600 my-2 p-2 bg-slate-50 rounded border whitespace-pre-wrap">{c.messageTemplate}</p>
+                            <div className="text-xs text-slate-500 flex justify-between items-center">
+                                <span>Agendado para: {c.scheduledAt ? new Date(c.scheduledAt).toLocaleString('pt-BR') : 'Imediato'}</span>
+                                {c.status === 'draft' && (
+                                    <button onClick={() => handleSendCampaign(c.id)} className="flex items-center text-sm bg-green-500 text-white font-semibold px-3 py-1 rounded-md hover:bg-green-600">
+                                        <PaperAirplaneIcon className="w-4 h-4 mr-1"/> Enviar Agora
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const HistoryViewer = () => {
     const [history, setHistory] = useState<SocialPost[]>([]);

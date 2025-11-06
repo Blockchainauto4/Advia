@@ -45,6 +45,7 @@ async function generateSitemap() {
         '#/termos',
         '#/privacidade',
         '#/reembolso',
+        '#/grupos',
     ];
 
     const sitemapEntries = staticPages.map(page => ({

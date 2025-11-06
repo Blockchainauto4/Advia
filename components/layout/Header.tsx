@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SparklesIcon, ArrowLeftOnRectangleIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, UserCircleIcon } from '../Icons';
-import type { User } from '../../types';
-import { useNavigation } from '../../App';
+import { SparklesIcon, ArrowLeftOnRectangleIcon, Bars3Icon, XMarkIcon, ChevronDownIcon, UserCircleIcon, Cog6ToothIcon } from '../Icons.tsx';
+import type { User } from '../../types.ts';
+import { useNavigation } from '../../App.tsx';
 
 interface NavItem {
     id: string;
@@ -20,9 +20,9 @@ const navConfig: NavItem[] = [
             { id: 'marketing', label: 'Marketing Jurídico IA', href: '#/marketing' },
             { id: 'conversor', label: 'Conversor de Arquivos', href: '#/conversor' },
             { id: 'seguranca', label: 'Câmera de Segurança', href: '#/seguranca' },
+            { id: 'grupos', label: 'Grupos de WhatsApp', href: '#/grupos' },
         ]
     },
-    { id: 'planos', label: 'Planos', href: '#/planos' },
     { id: 'quem-somos', label: 'Quem Somos', href: '#/quem-somos' },
     { id: 'blog', label: 'Blog', href: '#/blog' },
     { id: 'contato', label: 'Contato', href: '#/contato' },
@@ -85,8 +85,6 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     
-    const getPlanLabel = () => user?.subscription ? 'Minha Assinatura' : 'Planos';
-
     return (
         <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg sticky top-0 z-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -103,7 +101,7 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
                     </a>
                     
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center space-x-1">
+                    <nav className="hidden md:flex items-center space-x-2">
                         {navConfig.map(item => (
                             item.children ? (
                                 <div key={item.id} className="relative" ref={toolsMenuRef}>
@@ -129,7 +127,7 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
                                     )}
                                 </div>
                             ) : (
-                                <NavLink key={item.id} item={{...item, label: item.id === 'planos' ? getPlanLabel() : item.label }} isActive={isCurrentPage(item.id)} onClick={() => handleLinkClick(item.href)} />
+                                <NavLink key={item.id} item={item} isActive={isCurrentPage(item.id)} onClick={() => handleLinkClick(item.href)} />
                             )
                         ))}
                     </nav>
@@ -150,6 +148,9 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
                                  {isUserMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-md shadow-lg py-1 z-20">
                                         <a href="#/dashboard" onClick={(e) => { e.preventDefault(); handleLinkClick('#/dashboard'); }} className="block px-4 py-2 text-sm text-gray-300 hover:bg-slate-700">Meu Painel</a>
+                                        {user.role === 'admin' && (
+                                            <a href="#/admin" onClick={(e) => { e.preventDefault(); handleLinkClick('#/admin'); }} className="block px-4 py-2 text-sm text-gray-300 hover:bg-slate-700">Painel Admin</a>
+                                        )}
                                         <button onClick={handleLogoutClick} className="w-full text-left block px-4 py-2 text-sm text-gray-300 hover:bg-slate-700">Sair</button>
                                     </div>
                                 )}
@@ -191,7 +192,7 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
                                     )}
                                 </div>
                             ) : (
-                                 <NavLink key={item.id} item={{...item, label: item.id === 'planos' ? getPlanLabel() : item.label }} isActive={isCurrentPage(item.id)} isMobile onClick={() => handleLinkClick(item.href)} />
+                                 <NavLink key={item.id} item={item} isActive={isCurrentPage(item.id)} isMobile onClick={() => handleLinkClick(item.href)} />
                             )
                         ))}
                         <div className="border-t border-slate-700 pt-4 mt-4 space-y-2">
@@ -205,6 +206,12 @@ export const Header: React.FC<{ currentPage: string; user: User | null; onLogout
                                         )}
                                         <span>Painel de {user.name.split(' ')[0]}</span>
                                     </a>
+                                    {user.role === 'admin' && (
+                                        <a href="#/admin" onClick={(e) => {e.preventDefault(); handleLinkClick('#/admin')}} className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-slate-700">
+                                            <Cog6ToothIcon className="w-5 h-5 mr-3" />
+                                            Painel Admin
+                                        </a>
+                                    )}
                                     <button onClick={handleLogoutClick} className="w-full text-left flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-slate-700">
                                         <ArrowLeftOnRectangleIcon className="w-5 h-5 mr-2" />
                                         Sair

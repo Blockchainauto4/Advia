@@ -1,5 +1,5 @@
 // services/marketingHistoryService.ts
-import type { SocialPost } from '../types';
+import type { SocialPost } from '../types.ts';
 
 const MARKETING_HISTORY_KEY = 'advocaciaai_marketing_history';
 

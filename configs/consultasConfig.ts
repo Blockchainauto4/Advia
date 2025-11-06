@@ -1,7 +1,7 @@
 import React from 'react';
-import { PlacaVeiculoCalculator } from '../calculators';
-import { CepConsultor, CnpjConsultor } from '../consultas';
-import { CarIcon, MapPinIcon, BriefcaseIcon } from '../components/Icons';
+import { PlacaVeiculoCalculator } from '../calculators/index.tsx';
+import { CepConsultor, CnpjConsultor } from '../consultas/index.tsx';
+import { CarIcon, MapPinIcon, BriefcaseIcon } from '../components/Icons.tsx';
 
 export interface Consulta {
   id: string;

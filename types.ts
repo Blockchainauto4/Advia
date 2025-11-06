@@ -4,21 +4,7 @@ export interface User {
   name: string;
   email: string;
   photoUrl?: string;
-  subscription?: {
-    planId: string;
-    trialEnds: string;
-  };
-}
-
-// FIX: Add Plan interface to be used across the application.
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  features: string[];
-  highlight: boolean;
-  trialDays: number;
+  role?: 'admin' | 'user';
 }
 
 export interface ChatMessage {
@@ -33,7 +19,7 @@ export interface Conversation {
 }
 
 export interface Assistant {
-  id: string;
+  id:string;
   name: string;
   description: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
@@ -91,4 +77,14 @@ export interface BlogPost {
   date: string;
   excerpt: string;
   content: React.ReactNode;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  messageTemplate: string;
+  status: 'draft' | 'sending' | 'sent' | 'failed';
+  recipientCount: number;
+  createdAt: string;
+  scheduledAt?: string;
 }

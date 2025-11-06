@@ -1,7 +1,7 @@
 import React from 'react';
-import { blogPosts } from '../configs/blogPosts';
-import { useNavigation } from '../App';
-import { UserCircleIcon, CalendarDaysIcon } from '../components/Icons';
+import { blogPosts } from '../configs/blogPosts.ts';
+import { useNavigation } from '../App.tsx';
+import { UserCircleIcon, CalendarDaysIcon } from '../components/Icons.tsx';
 
 export const BlogPage: React.FC = () => {
     const { navigate } = useNavigation();
@@ -18,35 +18,32 @@ export const BlogPage: React.FC = () => {
 
                 <div className="max-w-4xl mx-auto space-y-10">
                     {blogPosts.map((post) => (
-                        <article key={post.id} className="bg-white p-8 rounded-lg shadow-lg transition-shadow duration-300 hover:shadow-xl">
-                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-                                <a 
-                                    href={`#/blog/${post.id}`} 
-                                    onClick={(e) => { e.preventDefault(); navigate(`#/blog/${post.id}`); }}
-                                    className="hover:text-indigo-600 transition-colors"
-                                >
+                        <a
+                            key={post.id}
+                            href={`#/blog/${post.id}`}
+                            onClick={(e) => { e.preventDefault(); navigate(`#/blog/${post.id}`); }}
+                            className="group block bg-white p-8 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                            <article>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
                                     {post.title}
-                                </a>
-                            </h2>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                                <div className="flex items-center">
-                                    <UserCircleIcon className="w-4 h-4 mr-1.5" />
-                                    <span>{post.author}</span>
+                                </h2>
+                                <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
+                                    <div className="flex items-center">
+                                        <UserCircleIcon className="w-4 h-4 mr-1.5" />
+                                        <span>{post.author}</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <CalendarDaysIcon className="w-4 h-4 mr-1.5" />
+                                        <time dateTime={new Date(post.date).toISOString()}>{new Date(post.date).toLocaleDateString('pt-BR')}</time>
+                                    </div>
                                 </div>
-                                <div className="flex items-center">
-                                    <CalendarDaysIcon className="w-4 h-4 mr-1.5" />
-                                    <time dateTime={new Date(post.date).toISOString()}>{new Date(post.date).toLocaleDateString('pt-BR')}</time>
-                                </div>
-                            </div>
-                            <p className="text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
-                            <a 
-                                href={`#/blog/${post.id}`} 
-                                onClick={(e) => { e.preventDefault(); navigate(`#/blog/${post.id}`); }}
-                                className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                            >
-                                Ler mais &rarr;
-                            </a>
-                        </article>
+                                <p className="text-gray-700 leading-relaxed mb-6">{post.excerpt}</p>
+                                <span className="font-semibold text-indigo-600 group-hover:text-indigo-800 transition-colors">
+                                    Ler mais &rarr;
+                                </span>
+                            </article>
+                        </a>
                     ))}
                 </div>
             </div>

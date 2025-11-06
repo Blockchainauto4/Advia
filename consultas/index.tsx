@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { consultarCep, consultarCnpj } from '../services/geminiService';
+import { consultarCep, consultarCnpj } from '../services/geminiService.ts';
 
 const LoadingButtonContent: React.FC<{text: string}> = ({ text }) => (
     <>

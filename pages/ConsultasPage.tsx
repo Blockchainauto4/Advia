@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { consultas } from '../configs/consultasConfig';
-import type { User } from '../types';
-import { AccessControlOverlay } from '../components/AccessControlOverlay';
-import { BriefcaseIcon } from '../components/Icons';
+import { consultas } from '../configs/consultasConfig.ts';
+import type { User } from '../types.ts';
+import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
+import { BriefcaseIcon } from '../components/Icons.tsx';
 
 interface ConsultasPageProps {
     user: User | null;
@@ -12,7 +12,7 @@ export const ConsultasPage: React.FC<ConsultasPageProps> = ({ user }) => {
     const [selectedConsultaId, setSelectedConsultaId] = useState<string>(consultas[0].id);
 
     const selectedConsulta = consultas.find(c => c.id === selectedConsultaId);
-    const isAllowed = !!user?.subscription;
+    const isAllowed = !!user;
 
     return (
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">

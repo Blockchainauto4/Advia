@@ -1,15 +1,8 @@
 // services/whatsappCampaignService.ts
+import type { Campaign } from '../types.ts';
+
 // ATENÇÃO: Este é um serviço de simulação.
 // A integração real com a API do WhatsApp Business DEVE ser feita em um backend seguro.
-
-export interface Campaign {
-    id: string;
-    name: string;
-    messageTemplate: string;
-    status: 'draft' | 'sending' | 'sent' | 'failed';
-    recipientCount: number;
-    createdAt: string;
-}
 
 const CAMPAIGNS_KEY = 'advocaciaai_whatsapp_campaigns';
 
@@ -41,7 +34,7 @@ export const whatsappCampaignService = {
         });
     },
 
-    createCampaign: (name: string, messageTemplate: string, recipientCount: number): Promise<Campaign> => {
+    createCampaign: (name: string, messageTemplate: string, recipientCount: number, scheduledAt?: string): Promise<Campaign> => {
         return new Promise(resolve => {
             setTimeout(() => {
                 const newCampaign: Campaign = {
@@ -51,6 +44,7 @@ export const whatsappCampaignService = {
                     recipientCount,
                     status: 'draft',
                     createdAt: new Date().toISOString(),
+                    scheduledAt,
                 };
                 const campaigns = getCampaigns();
                 campaigns.unshift(newCampaign);
@@ -88,6 +82,17 @@ export const whatsappCampaignService = {
                     }
                 }
             }, 3000);
+        });
+    },
+
+    deleteCampaign: (campaignId: string): Promise<void> => {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                let campaigns = getCampaigns();
+                campaigns = campaigns.filter(c => c.id !== campaignId);
+                saveCampaigns(campaigns);
+                resolve();
+            }, 300);
         });
     }
 };

@@ -1,6 +1,7 @@
 import React from 'react';
-import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon } from '../components/Icons';
-import { useNavigation } from '../App';
+import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon } from '../components/Icons.tsx';
+import { useNavigation } from '../App.tsx';
+import { TrendingToolsSlider } from '../components/home/TrendingToolsSlider.tsx';
 
 export const HomePage: React.FC = () => {
     const { navigate } = useNavigation();
@@ -85,6 +86,9 @@ export const HomePage: React.FC = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Trending Tools Slider Section */}
+            <TrendingToolsSlider />
 
             {/* Features Section */}
             <section className="py-20 bg-slate-100">
@@ -198,10 +202,10 @@ export const HomePage: React.FC = () => {
                 <div className="container mx-auto text-center max-w-3xl">
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">Pronto para Elevar sua Advocacia a um Novo Nível?</h2>
                     <p className="text-gray-600 mb-8">
-                        Cadastre-se e comece seu teste gratuito. Descubra como a AdvocaciaAI pode ser sua maior aliada no dia a dia.
+                        Cadastre-se gratuitamente e descubra como a AdvocaciaAI pode ser sua maior aliada no dia a dia.
                     </p>
-                    <a href="#/planos" onClick={(e) => { e.preventDefault(); navigate('#/planos'); }} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
-                        Ver Planos e Preços
+                    <a href="#/auth" onClick={(e) => { e.preventDefault(); navigate('#/auth'); }} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+                        Cadastre-se Gratuitamente
                     </a>
                 </div>
             </section>

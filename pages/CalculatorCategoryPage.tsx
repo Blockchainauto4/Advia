@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { calculatorCategories, Calculator } from '../configs/calculatorConfigs';
-import { useNavigation } from '../App';
-import { ArrowLeftOnRectangleIcon, LockClosedIcon } from '../components/Icons'; // Using ArrowLeftOnRectangle as a back icon
-import { AccessControlOverlay } from '../components/AccessControlOverlay';
-import type { User } from '../types';
+import { calculatorCategories } from '../configs/calculatorConfigs.ts';
+import type { Calculator } from '../configs/calculatorConfigs.ts';
+import { useNavigation } from '../App.tsx';
+import { ArrowLeftOnRectangleIcon } from '../components/Icons.tsx';
+import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
+import type { User } from '../types.ts';
 
 interface CalculatorCategoryPageProps {
   categoryId: string;
@@ -37,7 +38,7 @@ export const CalculatorCategoryPage: React.FC<CalculatorCategoryPageProps> = ({ 
         );
     }
 
-    const isAllowed = !!user?.subscription;
+    const isAllowed = !!user;
 
     return (
         <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">

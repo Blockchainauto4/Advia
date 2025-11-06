@@ -1,13 +1,12 @@
-
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Sidebar } from '../components/chat/Sidebar';
-import { ChatWindow } from '../components/chat/ChatWindow';
-import { assistants } from '../configs/assistantsConfig';
-import { getChatStream, generateFollowUpSuggestions } from '../services/geminiService';
-import { chatHistoryService } from '../services/chatHistoryService';
-import type { ChatMessage, Conversation } from '../types';
+import { Sidebar } from '../components/chat/Sidebar.tsx';
+import { ChatWindow } from '../components/chat/ChatWindow.tsx';
+import { assistants } from '../configs/assistantsConfig.ts';
+import { getChatStream, generateFollowUpSuggestions } from '../services/geminiService.ts';
+import { chatHistoryService } from '../services/chatHistoryService.ts';
+import type { ChatMessage, Conversation } from '../types.ts';
 import { GenerateContentRequest } from '@google/genai';
+import { Bars3Icon } from '../components/Icons.tsx';
 
 export const ChatPage: React.FC = () => {
     const [selectedAssistantId, setSelectedAssistantId] = useState<string>(assistants[0].id);
@@ -17,6 +16,7 @@ export const ChatPage: React.FC = () => {
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const activeAssistant = useMemo(() => assistants.find(a => a.id === selectedAssistantId), [selectedAssistantId]);
 
@@ -27,7 +27,6 @@ export const ChatPage: React.FC = () => {
 
     useEffect(() => {
         loadConversations();
-        // Reset view when assistant changes
         setMessages([]);
         setActiveConversationId(null);
     }, [selectedAssistantId, loadConversations]);
@@ -37,12 +36,14 @@ export const ChatPage: React.FC = () => {
         setMessages([]);
         setCurrentMessage('');
         setSuggestions([]);
+        setIsMobileSidebarOpen(false);
     };
     
     const handleSelectAssistant = (id: string) => {
         if(id !== selectedAssistantId) {
             setSelectedAssistantId(id);
         }
+        setIsMobileSidebarOpen(false);
     };
 
     const handleLoadConversation = (id: string) => {
@@ -52,6 +53,7 @@ export const ChatPage: React.FC = () => {
             setMessages(conversation.messages);
             setSuggestions([]);
         }
+        setIsMobileSidebarOpen(false);
     };
     
     const handleDeleteConversation = (id: string) => {
@@ -139,7 +141,7 @@ export const ChatPage: React.FC = () => {
     };
     
     return (
-        <div className="flex-grow flex h-[calc(100vh-8rem)]">
+        <div className="flex-grow flex h-[calc(100vh-4rem)]">
             <Sidebar 
                 selectedAssistantId={selectedAssistantId}
                 onSelectAssistant={handleSelectAssistant}
@@ -148,17 +150,31 @@ export const ChatPage: React.FC = () => {
                 onLoadConversation={handleLoadConversation}
                 onDeleteConversation={handleDeleteConversation}
                 onNewConversation={handleNewConversation}
+                isMobileOpen={isMobileSidebarOpen}
+                onClose={() => setIsMobileSidebarOpen(false)}
             />
-            <ChatWindow
-                assistant={activeAssistant}
-                messages={messages}
-                currentMessage={currentMessage}
-                onCurrentMessageChange={setCurrentMessage}
-                onSendMessage={handleSendFromInput}
-                isLoading={isLoading}
-                suggestions={suggestions}
-                onSuggestionClick={handleSuggestionClick}
-            />
+            <div className="flex-grow flex flex-col bg-white">
+                {/* Mobile Header */}
+                <header className="md:hidden flex items-center justify-between p-2 border-b bg-white z-10">
+                    <button onClick={() => setIsMobileSidebarOpen(true)} aria-label="Abrir menu">
+                        <Bars3Icon className="w-6 h-6 text-slate-600" />
+                    </button>
+                    <h1 className="font-semibold text-slate-800 truncate">
+                        {activeAssistant?.name || 'Chat AI'}
+                    </h1>
+                    <div className="w-6" /> {/* Spacer to balance the title */}
+                </header>
+                <ChatWindow
+                    assistant={activeAssistant}
+                    messages={messages}
+                    currentMessage={currentMessage}
+                    onCurrentMessageChange={setCurrentMessage}
+                    onSendMessage={handleSendFromInput}
+                    isLoading={isLoading}
+                    suggestions={suggestions}
+                    onSuggestionClick={handleSuggestionClick}
+                />
+            </div>
         </div>
     );
 };
