@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { calculatorCategories, Calculator } from '../configs/calculatorConfigs';
 import { useNavigation } from '../App';
@@ -76,22 +75,22 @@ export const CalculatorCategoryPage: React.FC<CalculatorCategoryPageProps> = ({ 
 
                 {/* Right Column: Selected Calculator View */}
                 <div id="calculator-view" className="lg:col-span-2">
-                    <AccessControlOverlay isAllowed={isAllowed} featureName={selectedCalculator?.name || 'Calculadoras'}>
-                        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg min-h-[400px]">
-                            {selectedCalculator ? (
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedCalculator.name}</h2>
-                                    <p className="text-sm text-gray-500 mb-6">{selectedCalculator.description}</p>
+                    <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg min-h-[400px]">
+                        {selectedCalculator ? (
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedCalculator.name}</h2>
+                                <p className="text-sm text-gray-500 mb-6">{selectedCalculator.description}</p>
+                                <AccessControlOverlay isAllowed={isAllowed} featureName={selectedCalculator.name}>
                                     <selectedCalculator.component />
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center text-slate-500">
-                                    <CalculatorIcon className="w-16 h-16 text-slate-300 mb-4" />
-                                    <p className="font-semibold">Selecione uma calculadora na lista ao lado para começar.</p>
-                                </div>
-                            )}
-                        </div>
-                     </AccessControlOverlay>
+                                </AccessControlOverlay>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-slate-500">
+                                <CalculatorIcon className="w-16 h-16 text-slate-300 mb-4" />
+                                <p className="font-semibold">Selecione uma calculadora na lista ao lado para começar.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </main>

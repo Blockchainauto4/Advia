@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { SocialPost, User } from '../types';
 import { useToast } from '../App';
@@ -15,8 +13,9 @@ interface MarketingPageProps {
     user: User | null;
 }
 
-const platforms = ["Instagram (Post Único)", "Instagram (Carrossel)", "TikTok (Vídeo Curto)", "LinkedIn (Artigo)", "Facebook (Post Único)"];
-const tones = ["Informativo", "Formal", "Persuasivo", "Acessível", "Urgente"];
+// FIX: Define platforms and tones arrays
+const platforms = ['Instagram (Feed)', 'Instagram (Carrossel)', 'TikTok / Reels', 'LinkedIn', 'Blog Article'];
+const tones = ['Formal', 'Informativo', 'Acessível', 'Persuasivo', 'Empático'];
 
 // --- Main Component ---
 export const MarketingPage: React.FC<MarketingPageProps> = ({ user }) => {
@@ -30,23 +29,23 @@ export const MarketingPage: React.FC<MarketingPageProps> = ({ user }) => {
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">Crie calendários, posts e até vídeos para suas redes sociais. Engaje seu público e atraia novos clientes.</p>
             </div>
             
-             <AccessControlOverlay isAllowed={isAllowed} featureName="Marketing Jurídico com IA">
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-                    <div className="border-b border-gray-200 mb-6">
-                        <nav className="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
-                            <TabButton id="post" activeTab={activeTab} setActiveTab={setActiveTab} icon={<DocumentTextIcon className="w-5 h-5 mr-2" />}>Gerar Post</TabButton>
-                            <TabButton id="calendar" activeTab={activeTab} setActiveTab={setActiveTab} icon={<CalendarDaysIcon className="w-5 h-5 mr-2" />}>Calendário de Conteúdo</TabButton>
-                            <TabButton id="history" activeTab={activeTab} setActiveTab={setActiveTab} icon={<ClockIcon className="w-5 h-5 mr-2" />}>Histórico</TabButton>
-                        </nav>
-                    </div>
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
+                <div className="border-b border-gray-200 mb-6">
+                    <nav className="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                        <TabButton id="post" activeTab={activeTab} setActiveTab={setActiveTab} icon={<DocumentTextIcon className="w-5 h-5 mr-2" />}>Gerar Post</TabButton>
+                        <TabButton id="calendar" activeTab={activeTab} setActiveTab={setActiveTab} icon={<CalendarDaysIcon className="w-5 h-5 mr-2" />}>Calendário de Conteúdo</TabButton>
+                        <TabButton id="history" activeTab={activeTab} setActiveTab={setActiveTab} icon={<ClockIcon className="w-5 h-5 mr-2" />}>Histórico</TabButton>
+                    </nav>
+                </div>
 
-                    <div>
+                <div>
+                    <AccessControlOverlay isAllowed={isAllowed} featureName="Marketing Jurídico com IA">
                         {activeTab === 'post' && <PostGenerator />}
                         {activeTab === 'calendar' && <CalendarGenerator />}
                         {activeTab === 'history' && <HistoryViewer />}
-                    </div>
+                    </AccessControlOverlay>
                 </div>
-            </AccessControlOverlay>
+            </div>
         </main>
     );
 };

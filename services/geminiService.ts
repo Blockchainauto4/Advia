@@ -363,6 +363,42 @@ export async function generateSocialMediaPost(theme: string, platform: string, t
     }
 }
 
+export async function convertFileContent(filePart: Part, outputFormat: 'txt' | 'docx'): Promise<string> {
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+        throw new Error("A variável de ambiente API_KEY não está configurada.");
+    }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    let prompt = '';
+    if (outputFormat === 'txt') {
+        prompt = "Extraia e retorne apenas o texto bruto do documento fornecido. Não inclua nenhuma formatação, comentário, preâmbulo ou explicação. Apenas o texto puro.";
+    } else { // docx
+        prompt = "Extraia o conteúdo do documento PDF fornecido. Reformate-o de forma limpa para ser colado em um documento do Microsoft Word. Preserve a estrutura como títulos, parágrafos e listas. Não adicione nenhum comentário, preâmbulo ou explicação. Apenas forneça o conteúdo de texto formatado.";
+    }
+
+    const textPart = { text: prompt };
+    const contents: Content[] = [{ parts: [textPart, filePart] }];
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro', // Pro model is good for document understanding
+            contents: contents,
+            config: {
+                temperature: 0.2, // Lower temperature for more deterministic extraction
+            },
+        });
+
+        return response.text;
+    } catch (error) {
+        console.error("Error converting file content with Gemini API:", error);
+        if (error instanceof Error) {
+            throw new Error(`Falha na conversão via IA: ${error.message}.`);
+        }
+        throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API para conversão.");
+    }
+}
+
 export async function generateVideoFromPost(post: SocialPost, doubt: string, setVideoStatus: (status: string) => void): Promise<string> {
     const API_KEY = process.env.API_KEY;
     if (!API_KEY) {

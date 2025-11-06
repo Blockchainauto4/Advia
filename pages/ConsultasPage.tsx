@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { consultas } from '../configs/consultasConfig';
 import type { User } from '../types';
@@ -48,22 +47,22 @@ export const ConsultasPage: React.FC<ConsultasPageProps> = ({ user }) => {
 
                 {/* Right Column: View */}
                 <div className="lg:col-span-2">
-                     <AccessControlOverlay isAllowed={isAllowed} featureName={selectedConsulta?.name || 'Consultas Públicas'}>
-                        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg min-h-[400px]">
-                            {selectedConsulta ? (
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedConsulta.name}</h2>
-                                    <p className="text-sm text-gray-500 mb-6">{selectedConsulta.description}</p>
+                    <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg min-h-[400px]">
+                        {selectedConsulta ? (
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedConsulta.name}</h2>
+                                <p className="text-sm text-gray-500 mb-6">{selectedConsulta.description}</p>
+                                <AccessControlOverlay isAllowed={isAllowed} featureName={selectedConsulta.name}>
                                     <selectedConsulta.component />
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-center text-slate-500">
-                                    <BriefcaseIcon className="w-16 h-16 text-slate-300 mb-4" />
-                                    <p className="font-semibold">Selecione uma consulta na lista para começar.</p>
-                                </div>
-                            )}
-                        </div>
-                     </AccessControlOverlay>
+                                </AccessControlOverlay>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-slate-500">
+                                <BriefcaseIcon className="w-16 h-16 text-slate-300 mb-4" />
+                                <p className="font-semibold">Selecione uma consulta na lista para começar.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </main>

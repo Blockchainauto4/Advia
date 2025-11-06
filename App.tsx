@@ -106,7 +106,7 @@ const App: React.FC = () => {
                 return subpage ? <CalculatorCategoryPage categoryId={subpage} user={user} /> : <CalculadorasHubPage />;
             case 'consultas': return <ConsultasPage user={user} />;
             case 'marketing': return <MarketingPage user={user} />;
-            case 'conversor': return <ConversorPage />;
+            case 'conversor': return <ConversorPage user={user} />;
             case 'seguranca': return <SafetyCameraPage user={user} />;
             case 'planos': return <PlanosPage user={user} />;
             case 'auth': return <AuthPage onLoginSuccess={handleLoginSuccess} />;

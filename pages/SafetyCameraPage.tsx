@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Part } from '@google/genai';
 import { useToast } from '../App';
@@ -128,8 +127,8 @@ export const SafetyCameraPage: React.FC<SafetyCameraPageProps> = ({ user }) => {
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">Envie o vídeo da sua dashcam e deixe a IA identificar placas, infrações e eventos de segurança relevantes.</p>
             </div>
             
-            <AccessControlOverlay isAllowed={isAllowed} featureName="Câmera de Segurança com IA">
-                <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+                <AccessControlOverlay isAllowed={isAllowed} featureName="Câmera de Segurança com IA">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Left: Video Player & Controls */}
                         <div className="space-y-4">
@@ -187,8 +186,8 @@ export const SafetyCameraPage: React.FC<SafetyCameraPageProps> = ({ user }) => {
                             )}
                         </div>
                     </div>
-                </div>
-            </AccessControlOverlay>
+                </AccessControlOverlay>
+            </div>
         </main>
     );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { DocumentGeneratorPage } from './DocumentGeneratorPage';
 import { documentConfigs } from '../configs/documentConfigs';
@@ -6,8 +5,6 @@ import type { FormData, User } from '../types';
 import { useToast } from '../App';
 import { generateDocument } from '../services/geminiService';
 import { jsPDF } from 'jspdf';
-import { AccessControlOverlay } from '../components/AccessControlOverlay';
-
 
 interface DocumentGeneratorControllerProps {
     user: User | null;
@@ -127,27 +124,26 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
     };
 
     return (
-        <AccessControlOverlay isAllowed={isAllowed} featureName="Gerador de Documentos">
-            <DocumentGeneratorPage
-                docType={docType}
-                handleDocTypeChange={handleDocTypeChange}
-                prompt={prompt}
-                setPrompt={setPrompt}
-                formData={formData}
-                handleInputChange={handleInputChange}
-                currentConfig={currentConfig}
-                handleGenerate={handleGenerate}
-                isLoading={isLoading}
-                error={error}
-                isInitialState={isInitialState}
-                formattedDocumentText={formattedDocumentText}
-                handleCopy={handleCopy}
-                handleClear={handleClear}
-                handleSaveDraft={handleSaveDraft}
-                handleExportPDF={handleExportPDF}
-                handleSpeak={handleSpeak}
-                isSpeaking={isSpeaking}
-            />
-        </AccessControlOverlay>
+        <DocumentGeneratorPage
+            isAllowed={isAllowed}
+            docType={docType}
+            handleDocTypeChange={handleDocTypeChange}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            formData={formData}
+            handleInputChange={handleInputChange}
+            currentConfig={currentConfig}
+            handleGenerate={handleGenerate}
+            isLoading={isLoading}
+            error={error}
+            isInitialState={isInitialState}
+            formattedDocumentText={formattedDocumentText}
+            handleCopy={handleCopy}
+            handleClear={handleClear}
+            handleSaveDraft={handleSaveDraft}
+            handleExportPDF={handleExportPDF}
+            handleSpeak={handleSpeak}
+            isSpeaking={isSpeaking}
+        />
     );
 };
