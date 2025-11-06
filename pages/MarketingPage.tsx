@@ -13,7 +13,6 @@ interface MarketingPageProps {
     user: User | null;
 }
 
-// FIX: Define platforms and tones arrays
 const platforms = ['Instagram (Feed)', 'Instagram (Carrossel)', 'TikTok / Reels', 'LinkedIn', 'Blog Article'];
 const tones = ['Formal', 'Informativo', 'Acessível', 'Persuasivo', 'Empático'];
 

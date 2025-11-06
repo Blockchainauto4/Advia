@@ -45,6 +45,7 @@ export const calculatorCategories: CalculatorCategory[] = [
     description: 'Ferramentas para simular aposentadorias, tempo de contribuição e valor de benefícios.',
     icon: React.createElement(HomeIcon, { className: "w-8 h-8" }),
     calculators: [
+      { id: 'simulacao-completa', name: 'Simulação Completa de Aposentadoria', description: 'Análise detalhada de todas as regras e cálculo de RMI (Recomendado uso do Meu INSS).', component: SimulacaoAposentadoriaCompleta },
       { id: 'tempo-contribuicao', name: 'Cálculo de Tempo de Contribuição', description: 'Some múltiplos períodos para determinar o tempo total de contribuição.', component: TempoContribuicaoCalculator },
       { id: 'aposentadoria-idade', name: 'Verificação de Aposentadoria por Idade', description: 'Confira se os requisitos de idade e tempo para aposentadoria urbana foram atingidos.', component: AposentadoriaIdadeUrbanaCalculator },
       { id: 'rmi', name: 'Cálculo de Renda Mensal Inicial (RMI)', description: 'Estime o valor inicial da aposentadoria com base na média dos salários e tempo de contribuição.', component: RMICalculator },
@@ -53,7 +54,11 @@ export const calculatorCategories: CalculatorCategory[] = [
       { id: 'pensao-morte', name: 'Cálculo de Pensão por Morte', description: 'Estime o valor da pensão com base no benefício do falecido e número de dependentes.', component: PensaoPorMorteCalculator },
       { id: 'auxilio-incapacidade', name: 'Cálculo de Auxílio por Incapacidade', description: 'Calcule o valor do benefício limitado pela média dos últimos 12 salários.', component: AuxilioBeneficioIncapacidadeCalculator },
       { id: 'fator-previdenciario', name: 'Cálculo do Fator Previdenciário', description: 'Calcule o fator usado em algumas regras de transição de aposentadoria.', component: FatorPrevidenciarioCalculator },
-      { id: 'simulacao-completa', name: 'Simulação Completa de Aposentadoria', description: 'Análise detalhada de todas as regras e cálculo de RMI (Recomendado uso do Meu INSS).', component: SimulacaoAposentadoriaCompleta },
+      { id: 'aposentadoria-tempo', name: 'Aposentadoria por Tempo de Contribuição', description: 'Análise complexa de regras de transição e pedágios (consulte um especialista).', component: AposentadoriaTempoContribuicaoCalculator },
+      { id: 'aposentadoria-invalidez', name: 'Aposentadoria por Incapacidade Permanente', description: 'Depende de perícia médica; cálculo varia por causa (consulte um especialista).', component: AposentadoriaInvalidezCalculator },
+      { id: 'aposentadoria-especial', name: 'Aposentadoria Especial', description: 'Análise de PPP e conversão de tempo (consulte um especialista).', component: AposentadoriaEspecialCalculator },
+      { id: 'contribuicoes-retroativas', name: 'Cálculo de Contribuições Retroativas', description: 'Cálculo de guias em atraso com juros e multas (consulte um especialista).', component: ContribuicoesRetroativasCalculator },
+      { id: 'indenizacao-tempo', name: 'Cálculo de Indenização de Tempo', description: 'Indenização de períodos não contribuídos (consulte um especialista).', component: IndenizacaoTempoContribuicaoCalculator },
     ],
   },
   {

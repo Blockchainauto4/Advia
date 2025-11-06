@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { ChatMessage as ChatMessageType, Assistant } from '../../types';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { ChatBubbleLeftRightIcon } from '../Icons';
+import { ChatBubbleLeftRightIcon, SparklesIcon } from '../Icons';
 
 interface ChatWindowProps {
     assistant: Assistant | undefined;
@@ -11,6 +11,8 @@ interface ChatWindowProps {
     onCurrentMessageChange: (message: string) => void;
     onSendMessage: () => void;
     isLoading: boolean;
+    suggestions: string[];
+    onSuggestionClick: (suggestion: string) => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -20,6 +22,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     onCurrentMessageChange,
     onSendMessage,
     isLoading,
+    suggestions,
+    onSuggestionClick,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +78,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                 )}
             </div>
+            
+            {!isLoading && suggestions.length > 0 && (
+                <div className="px-4 pt-2 pb-1 border-t border-slate-200">
+                    <p className="text-xs font-semibold text-slate-500 mb-2">Sugestões:</p>
+                    <div className="flex flex-wrap gap-2">
+                        {suggestions.map((suggestion, index) => (
+                            <button
+                                key={index}
+                                onClick={() => onSuggestionClick(suggestion)}
+                                className="flex items-center text-sm bg-slate-100 text-slate-700 px-3 py-1 rounded-full hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                            >
+                                <SparklesIcon className="w-3 h-3 mr-1.5 text-indigo-400"/>
+                                {suggestion}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
             <ChatInput
                 value={currentMessage}
                 onChange={onCurrentMessageChange}

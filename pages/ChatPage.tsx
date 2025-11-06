@@ -1,9 +1,10 @@
 
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Sidebar } from '../components/chat/Sidebar';
 import { ChatWindow } from '../components/chat/ChatWindow';
 import { assistants } from '../configs/assistantsConfig';
-import { getChatStream } from '../services/geminiService';
+import { getChatStream, generateFollowUpSuggestions } from '../services/geminiService';
 import { chatHistoryService } from '../services/chatHistoryService';
 import type { ChatMessage, Conversation } from '../types';
 import { GenerateContentRequest } from '@google/genai';
@@ -15,6 +16,7 @@ export const ChatPage: React.FC = () => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
 
     const activeAssistant = useMemo(() => assistants.find(a => a.id === selectedAssistantId), [selectedAssistantId]);
 
@@ -34,6 +36,7 @@ export const ChatPage: React.FC = () => {
         setActiveConversationId(null);
         setMessages([]);
         setCurrentMessage('');
+        setSuggestions([]);
     };
     
     const handleSelectAssistant = (id: string) => {
@@ -47,6 +50,7 @@ export const ChatPage: React.FC = () => {
         if (conversation) {
             setActiveConversationId(id);
             setMessages(conversation.messages);
+            setSuggestions([]);
         }
     };
     
@@ -58,10 +62,11 @@ export const ChatPage: React.FC = () => {
         loadConversations();
     };
 
-    const handleSendMessage = async () => {
-        if (!currentMessage.trim() || isLoading || !activeAssistant) return;
+    const sendMessage = async (messageContent: string) => {
+        if (!messageContent.trim() || isLoading || !activeAssistant) return;
 
-        const userMessage: ChatMessage = { role: 'user', content: currentMessage };
+        setSuggestions([]);
+        const userMessage: ChatMessage = { role: 'user', content: messageContent };
         const newMessages = [...messages, userMessage];
         setMessages(newMessages);
         setCurrentMessage('');
@@ -81,9 +86,10 @@ export const ChatPage: React.FC = () => {
             for await (const chunk of stream) {
                 responseContent += chunk;
                 setMessages(prev => {
-                    const lastMessage = prev[prev.length - 1];
-                    lastMessage.content = responseContent;
-                    return [...prev.slice(0, -1), lastMessage];
+                    const lastIndex = prev.length - 1;
+                    if (lastIndex < 0 || prev[lastIndex].role !== 'model') return prev;
+                    const updatedLastMessage = { ...prev[lastIndex], content: responseContent };
+                    return [...prev.slice(0, lastIndex), updatedLastMessage];
                 });
             }
             
@@ -101,13 +107,35 @@ export const ChatPage: React.FC = () => {
                 setActiveConversationId(newConversation.id);
             }
             loadConversations();
+            
+            const finalHistoryForSuggestions: GenerateContentRequest['contents'] = finalMessages.map(msg => ({
+                role: msg.role,
+                parts: [{ text: msg.content }],
+            }));
+            const followUps = await generateFollowUpSuggestions(finalHistoryForSuggestions, activeAssistant.systemInstruction);
+            setSuggestions(followUps);
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-            setMessages(prev => [...prev, { role: 'model', content: `Error: ${errorMessage}` }]);
+            setMessages(prev => {
+                const lastIndex = prev.length - 1;
+                if (lastIndex >= 0 && prev[lastIndex].role === 'model' && prev[lastIndex].content === '') {
+                    const updatedLastMessage = { ...prev[lastIndex], content: `Error: ${errorMessage}` };
+                    return [...prev.slice(0, lastIndex), updatedLastMessage];
+                }
+                return [...prev, { role: 'model', content: `Error: ${errorMessage}` }];
+            });
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const handleSendFromInput = () => {
+        sendMessage(currentMessage);
+    };
+
+    const handleSuggestionClick = (suggestion: string) => {
+        sendMessage(suggestion);
     };
     
     return (
@@ -126,8 +154,10 @@ export const ChatPage: React.FC = () => {
                 messages={messages}
                 currentMessage={currentMessage}
                 onCurrentMessageChange={setCurrentMessage}
-                onSendMessage={handleSendMessage}
+                onSendMessage={handleSendFromInput}
                 isLoading={isLoading}
+                suggestions={suggestions}
+                onSuggestionClick={handleSuggestionClick}
             />
         </div>
     );

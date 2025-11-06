@@ -37,6 +37,56 @@ export async function* getChatStream(
     }
 }
 
+export async function generateFollowUpSuggestions(
+  history: GenerateContentRequest['contents'],
+  systemInstruction: string
+): Promise<string[]> {
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+        throw new Error("A variável de ambiente API_KEY não está configurada.");
+    }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    const prompt = `
+        Baseado no histórico desta conversa, sugira exatamente 3 perguntas curtas e diretas (máximo 8 palavras cada) que o usuário poderia fazer em seguida para aprofundar o tópico ou explorar um novo aspecto relacionado.
+        As perguntas devem ser proativas e úteis.
+        Retorne a resposta como um array JSON de strings. Não adicione nenhuma formatação extra, apenas o array.
+        Exemplo: ["Qual o prazo para contestar?", "Como funciona a citação?", "E se a parte não pagar?"]
+    `;
+
+    const contentsWithPrompt: Content[] = [...history, { role: 'user', parts: [{ text: prompt }] }];
+
+    const responseSchema = {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: contentsWithPrompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema,
+                temperature: 0.8,
+            },
+        });
+        
+        const jsonText = response.text.trim().replace(/^```json\n|```$/g, '');
+        const suggestions = JSON.parse(jsonText);
+        
+        if (Array.isArray(suggestions) && suggestions.every(s => typeof s === 'string')) {
+            return suggestions.slice(0, 3);
+        }
+        return [];
+
+    } catch (error) {
+        console.error("Error generating follow-up suggestions:", error);
+        return [];
+    }
+}
+
 export async function* generateDocument(
     prompt: string,
     systemInstruction: string,
