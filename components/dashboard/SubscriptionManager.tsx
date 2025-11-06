@@ -1,36 +1,31 @@
 import React from 'react';
 import type { User } from '../../types';
+import { useNavigation } from '../../App';
+import { CheckCircleIcon } from '../Icons';
 
 interface SubscriptionManagerProps {
     user: User;
 }
 
 export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ user }) => {
+    const { navigate } = useNavigation();
 
     return (
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Minha Assinatura</h2>
             
-            <div className="bg-white p-6 rounded-lg border shadow-sm">
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                    <div>
-                        <p className="font-semibold text-gray-800">Plano Atual</p>
-                        <p className="text-2xl font-bold text-indigo-600">Acesso Gratuito</p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">Ativo</span>
-                </div>
-                <p className="text-sm text-gray-600 mt-4">
-                    Você possui acesso completo a todas as ferramentas da AdvocaciaAI. Aproveite para explorar o chat, gerar documentos e utilizar nossas calculadoras.
+            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg text-center">
+                <CheckCircleIcon className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-green-800">Você tem Acesso Total e Gratuito!</h3>
+                <p className="text-sm text-green-700 mt-2">
+                    Todas as funcionalidades da plataforma, incluindo o gerador de documentos, assistentes de IA e calculadoras, estão liberadas em sua conta.
                 </p>
-                <div className="mt-6 border-t pt-6">
-                     <h3 className="text-base font-semibold text-gray-700">Gerenciamento de Pagamentos</h3>
-                     <p className="text-sm text-gray-500 mt-2">
-                         Em breve, implementaremos nosso sistema de pagamentos via <strong>Mercado Pago Checkout Pro</strong>. Você poderá gerenciar suas futuras assinaturas e métodos de pagamento com total segurança diretamente por aqui.
-                     </p>
-                     <button disabled className="mt-4 w-full sm:w-auto bg-slate-300 text-slate-500 font-bold py-2 px-4 rounded-md cursor-not-allowed">
-                        Gerenciar Assinatura (em breve)
-                    </button>
-                </div>
+                <button 
+                    onClick={() => navigate('#/chat')}
+                    className="mt-6 bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700"
+                >
+                    Começar a Usar
+                </button>
             </div>
         </div>
     );

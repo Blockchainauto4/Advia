@@ -9,12 +9,11 @@ import { CalculadorasHubPage } from './pages/CalculadorasHubPage.tsx';
 import { CalculatorCategoryPage } from './pages/CalculatorCategoryPage.tsx';
 import { ConsultasPage } from './pages/ConsultasPage.tsx';
 import { MarketingPage } from './pages/MarketingPage.tsx';
-// FIX: Changed to a default import since ConversorPage is exported as default.
-import ConversorPage from './pages/ConversorPage.tsx';
+import { ConversorPage } from './pages/ConversorPage.tsx';
 import { SafetyCameraPage } from './pages/SafetyCameraPage.tsx';
+import { PlanosPage } from './pages/PlanosPage.tsx';
 import { AuthPage } from './pages/AuthPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
-import { AdminDashboardPage } from './pages/AdminDashboardPage.tsx';
 import { QuemSomosPage } from './pages/QuemSomosPage.tsx';
 import { BlogPage } from './pages/BlogPage.tsx';
 import { BlogPostPage } from './pages/BlogPostPage.tsx'; // Import the new component
@@ -22,7 +21,6 @@ import { ContatoPage } from './pages/ContatoPage.tsx';
 import { TermosPage } from './pages/TermosPage.tsx';
 import { PrivacidadePage } from './pages/PrivacidadePage.tsx';
 import { PoliticaReembolsoPage } from './pages/PoliticaReembolsoPage.tsx';
-import { GruposPage } from './pages/GruposPage.tsx'; // Import the new GruposPage component
 
 import { Toast } from './components/Toast.tsx';
 import { WhatsAppWidget } from './components/WhatsAppWidget.tsx';
@@ -54,7 +52,7 @@ const App: React.FC = () => {
     const handleLoginSuccess = (loggedInUser: User) => {
         setUser(loggedInUser);
         setToast({ type: 'success', message: `Bem-vindo(a), ${loggedInUser.name.split(' ')[0]}!` });
-        navigate(loggedInUser.role === 'admin' ? '#/admin' : '#/chat');
+        navigate('#/chat');
     };
     
     const handleUserUpdate = (updatedUser: User) => {
@@ -80,14 +78,9 @@ const App: React.FC = () => {
             case 'marketing': return <MarketingPage user={user} />;
             case 'conversor': return <ConversorPage user={user} />;
             case 'seguranca': return <SafetyCameraPage user={user} />;
+            case 'planos': return <PlanosPage user={user} />;
             case 'auth': return <AuthPage onLoginSuccess={handleLoginSuccess} />;
             case 'dashboard': return user ? <DashboardPage user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout} /> : <HomePage />;
-            case 'admin':
-                if (user?.role === 'admin') {
-                    return <AdminDashboardPage />;
-                }
-                // If not admin but logged in, redirect to their dashboard. Otherwise, home.
-                return user ? <DashboardPage user={user} onUserUpdate={handleUserUpdate} onLogout={handleLogout} /> : <HomePage />;
             case 'quem-somos': return <QuemSomosPage />;
             case 'blog':
                 return subpage ? <BlogPostPage slug={subpage} /> : <BlogPage />; // Updated blog routing
@@ -95,7 +88,6 @@ const App: React.FC = () => {
             case 'termos': return <TermosPage />;
             case 'privacidade': return <PrivacidadePage />;
             case 'reembolso': return <PoliticaReembolsoPage />;
-            case 'grupos': return <GruposPage />; // Add route for GruposPage
             case 'home':
             default:
                 return <HomePage />;

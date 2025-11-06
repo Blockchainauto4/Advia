@@ -4,10 +4,7 @@ import { BriefcaseIcon, ScaleIcon, CalculatorIcon, GavelIcon, CarIcon, HomeIcon 
 // Only DescontoINSSCalculator and PlacaVeiculoCalculator are currently available.
 import { 
     DescontoINSSCalculator,
-    PlacaVeiculoCalculator,
-    TempoDeContribuicaoCalculator,
-    ContribuicaoEmAtrasoCalculator,
-    BpcLoasEligibilityChecker
+    PlacaVeiculoCalculator
 } from '../calculators/index.tsx';
 
 export interface Calculator {
@@ -31,19 +28,16 @@ export const calculatorCategories: CalculatorCategory[] = [
     title: 'Trabalhista',
     description: 'Cálculos essenciais de verbas rescisórias, horas extras, descontos e mais.',
     icon: React.createElement(BriefcaseIcon, { className: "w-8 h-8" }),
-    calculators: [],
+    calculators: [
+      { id: 'desconto-inss', name: 'Cálculo de Desconto do INSS', description: 'Calcule o valor do desconto do INSS com base na tabela progressiva.', component: DescontoINSSCalculator },
+    ],
   },
   {
     id: 'previdenciario',
     title: 'Previdenciário',
     description: 'Ferramentas para simular aposentadorias, tempo de contribuição e valor de benefícios.',
     icon: React.createElement(HomeIcon, { className: "w-8 h-8" }),
-    calculators: [
-      { id: 'desconto-inss', name: 'Cálculo de Desconto do INSS', description: 'Calcule o valor do desconto do INSS com base na tabela progressiva.', component: DescontoINSSCalculator },
-      { id: 'tempo-contribuicao', name: 'Cálculo de Tempo de Contribuição', description: 'Some diferentes períodos para obter o tempo total de contribuição.', component: TempoDeContribuicaoCalculator },
-      { id: 'contribuicao-atraso', name: 'Cálculo de Contribuição em Atraso', description: 'Simule os acréscimos de multa e juros para contribuições pagas fora do prazo.', component: ContribuicaoEmAtrasoCalculator },
-      { id: 'bpc-loas', name: 'Verificador de Elegibilidade BPC/LOAS', description: 'Verifique se você atende aos critérios básicos para o Benefício de Prestação Continuada.', component: BpcLoasEligibilityChecker },
-    ],
+    calculators: [],
   },
   {
     id: 'processual',

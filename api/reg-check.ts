@@ -1,11 +1,8 @@
 // api/reg-check.ts
 // Esta função serverless executa no backend da Vercel.
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const placaParam = req.query.placa;
-    const placa = Array.isArray(placaParam) ? placaParam[0] : placaParam;
-    
+export default async function handler(req, res) {
+    const { placa } = req.query;
     // Usa a Environment Variable configurada na Vercel
     const username = process.env.REGCHECK_USERNAME;
 
@@ -33,7 +30,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error) {
         console.error('[API_REGCHECK_ERROR]', error);
         // Retorna um erro em JSON para facilitar o tratamento no frontend
-        const message = error instanceof Error ? error.message : 'Erro interno no servidor ao consultar a placa.';
-        return res.status(500).json({ message });
+        return res.status(500).json({ message: error.message || 'Erro interno no servidor ao consultar a placa.' });
     }
 }

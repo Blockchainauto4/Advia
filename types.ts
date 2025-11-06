@@ -4,7 +4,21 @@ export interface User {
   name: string;
   email: string;
   photoUrl?: string;
-  role?: 'admin' | 'user';
+  subscription?: {
+    planId: string;
+    trialEnds: string;
+  };
+}
+
+// FIX: Add Plan interface to be used across the application.
+export interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  highlight: boolean;
+  trialDays: number;
 }
 
 export interface ChatMessage {
@@ -19,7 +33,7 @@ export interface Conversation {
 }
 
 export interface Assistant {
-  id:string;
+  id: string;
   name: string;
   description: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
@@ -87,16 +101,4 @@ export interface Campaign {
   recipientCount: number;
   createdAt: string;
   scheduledAt?: string;
-}
-
-export interface WhatsAppGroup {
-  name: string;
-  description: string;
-  link: string;
-}
-
-export interface StateGroups {
-  stateName: string;
-  uf: string;
-  groups: WhatsAppGroup[];
 }

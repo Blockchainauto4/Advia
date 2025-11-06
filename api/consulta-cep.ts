@@ -1,11 +1,9 @@
 // api/consulta-cep.ts
 // Esta função serverless executa no backend da Vercel.
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Extrai o parâmetro 'cep' da URL da requisição
-  const cepParam = req.query.cep;
-  const cep = Array.isArray(cepParam) ? cepParam[0] : cepParam;
+  const { cep } = req.query;
 
   // Validação básica do CEP
   if (!cep || typeof cep !== 'string' || !/^\d{8}$/.test(cep.replace(/\D/g, ''))) {
@@ -45,7 +43,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
       console.error('[API_CEP_ERROR]', error);
-      const message = error instanceof Error ? error.message : 'Erro interno no servidor ao consultar CEP.';
-      return res.status(500).json({ message });
+      return res.status(500).json({ message: error.message || 'Erro interno no servidor ao consultar CEP.' });
   }
 }

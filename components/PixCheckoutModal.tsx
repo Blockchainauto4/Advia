@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import type { User } from '../types.ts';
+// FIX: Import Plan type from the central types file.
+import type { Plan, User } from '../types.ts';
 import { XMarkIcon, ClipboardIcon } from './Icons.tsx';
 import { useToast } from '../App.tsx';
 
 interface PixCheckoutModalProps {
-  plan: any;
+  plan: Plan;
   user: User;
   isOpen: boolean;
   onClose: () => void;

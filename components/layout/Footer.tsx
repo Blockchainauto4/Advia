@@ -59,8 +59,8 @@ export const Footer: React.FC = () => {
                         <ul className="space-y-3 text-sm">
                             <FooterLink href="#/quem-somos">Quem Somos</FooterLink>
                             <FooterLink href="#/blog">Blog</FooterLink>
-                            <FooterLink href="#/grupos">Grupos de WhatsApp</FooterLink>
                             <FooterLink href="#/contato">Contato</FooterLink>
+                            <FooterLink href="#/planos">Planos</FooterLink>
                         </ul>
                     </div>
                     

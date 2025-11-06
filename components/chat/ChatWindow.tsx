@@ -43,9 +43,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <div className="bg-slate-200 rounded-full p-4 mb-4">
                                     <assistant.icon className="w-12 h-12 text-slate-600" />
                                 </div>
-                                <h1 className="text-2xl font-bold text-slate-800">
-                                    {assistant.name.toLowerCase().startsWith('assistente') ? assistant.name : `Assistente de ${assistant.name}`}
-                                </h1>
+                                <h1 className="text-2xl font-bold text-slate-800">Assistente de {assistant.name}</h1>
                                 <p className="mt-2 max-w-md">{assistant.description}</p>
                             </>
                         ) : (

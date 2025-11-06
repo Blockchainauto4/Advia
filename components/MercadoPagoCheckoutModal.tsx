@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import type { User } from '../types.ts';
+// FIX: Import Plan type from the central types file.
+import type { Plan, User } from '../types.ts';
 import { CreditCardIcon, LockClosedIcon, XMarkIcon } from './Icons.tsx';
 import { mercadoPagoService } from '../services/mercadoPagoService.ts';
 import { useToast } from '../App.tsx';
 
 
 interface MercadoPagoCheckoutModalProps {
-  plan: any;
+  plan: Plan;
   user: User;
   isOpen: boolean;
   onClose: () => void;
@@ -49,13 +50,12 @@ export const MercadoPagoCheckoutModal: React.FC<MercadoPagoCheckoutModalProps> =
     
     try {
       // 1. Simula a chamada ao backend para criar a preferência de pagamento
-      // Fix: The service returns 'initPoint' as defined in the service, not 'preferenceId'.
-      const { initPoint } = await mercadoPagoService.createPreference(plan, user);
+      const { preferenceId } = await mercadoPagoService.createPreference(plan, user);
 
       // 2. Em um app real, aqui você usaria o SDK do Mercado Pago com o preferenceId
       // para renderizar o botão de pagamento ou redirecionar o usuário.
       // Ex: const mp = new MercadoPago('PUBLIC_KEY'); mp.checkout({ preference: { id: preferenceId } });
-      console.log('[SIMULAÇÃO] Redirecionando para checkout do Mercado Pago com a URL de init_point:', initPoint);
+      console.log('[SIMULAÇÃO] Redirecionando para checkout do Mercado Pago com a preferência:', preferenceId);
 
       // 3. Simula o usuário completando o pagamento no site do Mercado Pago e sendo redirecionado de volta.
       setTimeout(() => {
