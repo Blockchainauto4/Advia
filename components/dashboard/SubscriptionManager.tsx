@@ -1,6 +1,7 @@
 import React from 'react';
 import type { User } from '../../types';
-import { useNavigation } from '../../App';
+// Fix: Corrected the import path for the useNavigation hook from '../../App' to '../../AppContext'.
+import { useNavigation } from '../../AppContext';
 import { CheckCircleIcon } from '../Icons';
 
 interface SubscriptionManagerProps {

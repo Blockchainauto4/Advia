@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { SparklesIcon, DocumentArrowUpIcon, ArrowPathIcon, ClipboardIcon, ArrowDownTrayIcon } from '../components/Icons.tsx';
-import { useToast } from '../App.tsx';
-import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
-import type { User } from '../types.ts';
+import { SparklesIcon, DocumentArrowUpIcon, ArrowPathIcon, ClipboardIcon, ArrowDownTrayIcon } from '../components/Icons';
+import { useToast } from '../AppContext';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import type { User } from '../types';
 import { Part } from '@google/genai';
-import { convertFileContent } from '../services/geminiService.ts';
+import { convertFileContent } from '../services/geminiService';
 
 interface ConversorPageProps {
     user: User | null;

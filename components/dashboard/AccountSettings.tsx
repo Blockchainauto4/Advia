@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { User } from '../../types';
-import { useToast, useNavigation } from '../../App';
+import { useToast, useNavigation } from '../../AppContext';
 import { authService } from '../../services/authService';
 
 interface AccountSettingsProps {

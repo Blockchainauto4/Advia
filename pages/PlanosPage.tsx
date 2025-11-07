@@ -1,7 +1,7 @@
 import React from 'react';
-import { SparklesIcon } from '../components/Icons.tsx';
-import type { User } from '../types.ts';
-import { useNavigation } from '../App.tsx';
+import { SparklesIcon } from '../components/Icons';
+import type { User } from '../types';
+import { useNavigation } from '../AppContext';
 
 interface PlanosPageProps {
   user: User | null;

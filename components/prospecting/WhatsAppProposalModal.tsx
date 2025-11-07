@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Lead } from '../../types';
-import { useToast } from '../../App';
+import { useToast } from '../../AppContext';
 import { generateLeadProposal } from '../../services/geminiService';
 import { XMarkIcon, SparklesIcon, WhatsAppIcon, ClipboardIcon } from '../Icons';
 

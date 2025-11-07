@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 // FIX: Import Plan type from the central types file.
-import type { Plan, User } from '../types.ts';
-import { XMarkIcon, ClipboardIcon } from './Icons.tsx';
-import { useToast } from '../App.tsx';
+import type { Plan, User } from '../types';
+import { XMarkIcon, ClipboardIcon } from './Icons';
+import { useToast } from '../AppContext';
 
 interface PixCheckoutModalProps {
   plan: Plan;

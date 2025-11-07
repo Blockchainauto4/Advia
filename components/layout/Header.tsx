@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 // Fix: Remove .ts extension from imports.
 import type { User } from '../../types';
-import { useNavigation } from '../../App';
+import { useNavigation } from '../../AppContext';
 import { SparklesIcon, Bars3Icon, XMarkIcon } from '../Icons';
 
 interface HeaderProps {

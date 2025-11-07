@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 import { LockClosedIcon } from './Icons';
-import { useNavigation } from '../App';
+import { useNavigation } from '../AppContext';
 
 interface AccessControlOverlayProps {
     isAllowed: boolean;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { User, Lead, LeadStatus } from '../types';
-import { useToast } from '../App';
+import { useToast } from '../AppContext';
 import { findLeadsOnGoogleMaps } from '../services/geminiService';
 import { leadService } from '../services/leadService';
 import { AccessControlOverlay } from '../components/AccessControlOverlay';

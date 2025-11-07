@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Part } from '@google/genai';
-import { useToast } from '../App.tsx';
-import { analyzeVideoFramesForSafety } from '../services/geminiService.ts';
-import type { SafetyEvent, User } from '../types.ts';
-import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
-import { VideoCameraIcon, SparklesIcon, ArrowPathIcon } from '../components/Icons.tsx';
+import { useToast } from '../AppContext';
+import { analyzeVideoFramesForSafety } from '../services/geminiService';
+import type { SafetyEvent, User } from '../types';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import { VideoCameraIcon, SparklesIcon, ArrowPathIcon } from '../components/Icons';
 
 const FRAME_RATE = 1; // 1 frame per second
 const FRAME_QUALITY = 0.5; // JPEG quality

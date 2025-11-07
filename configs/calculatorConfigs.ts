@@ -1,13 +1,18 @@
 import React from 'react';
-// Fix: Remove .tsx extension from imports.
-import { BriefcaseIcon, ScaleIcon, GavelIcon, HomeIcon, CarIcon } from '../components/Icons';
+// Fix: Remove .ts extension from imports.
+import { BriefcaseIcon, ScaleIcon, GavelIcon, HomeIcon, CarIcon, BuildingOfficeIcon, CurrencyDollarIcon } from '../components/Icons';
 import { 
-    DescontoINSSCalculator,
+    SalarioLiquidoCalculator,
     TempoDeContribuicaoCalculator,
     PrazosProcessuaisCalculator,
     JurosCalculator,
     ProgressaoRegimeCalculator,
-    PlacaVeiculoCalculator
+    PlacaVeiculoCalculator,
+    ITBICalculator,
+    ReajusteAluguelCalculator,
+    FeriasCalculator,
+    DecimoTerceiroCalculator,
+    AluguelProporcionalCalculator,
 } from '../calculators/index';
 
 export interface Calculator {
@@ -32,7 +37,9 @@ export const calculatorCategories: CalculatorCategory[] = [
     description: 'Cálculos essenciais de verbas rescisórias, horas extras, descontos e mais.',
     icon: React.createElement(BriefcaseIcon, { className: "w-8 h-8" }),
     calculators: [
-      { id: 'desconto-inss', name: 'Cálculo de Desconto do INSS', description: 'Calcule o valor do desconto do INSS com base na tabela progressiva.', component: DescontoINSSCalculator },
+      { id: 'salario-liquido', name: 'Calculadora de Salário Líquido (CLT)', description: 'Calcule o salário líquido a partir do bruto, com descontos de INSS e Imposto de Renda (IRRF).', component: SalarioLiquidoCalculator },
+      { id: 'calculo-ferias', name: 'Calculadora de Férias', description: 'Calcule o valor líquido das suas férias, incluindo o terço constitucional e descontos.', component: FeriasCalculator },
+      { id: 'calculo-decimo-terceiro', name: 'Calculadora de 13º Salário Proporcional', description: 'Estime o valor do 13º salário com base nos meses trabalhados no ano.', component: DecimoTerceiroCalculator },
     ],
   },
   {
@@ -60,6 +67,17 @@ export const calculatorCategories: CalculatorCategory[] = [
     icon: React.createElement(ScaleIcon, { className: "w-8 h-8" }),
     calculators: [
         { id: 'juros', name: 'Cálculo de Juros Simples e Compostos', description: 'Calcule juros simples e compostos sobre um valor principal.', component: JurosCalculator },
+    ],
+  },
+   {
+    id: 'imobiliario',
+    title: 'Imobiliário',
+    description: 'Cálculos de ITBI, reajuste de aluguéis e outras transações imobiliárias.',
+    icon: React.createElement(BuildingOfficeIcon, { className: "w-8 h-8" }),
+    calculators: [
+        { id: 'itbi', name: 'Cálculo de ITBI', description: 'Estime o valor do Imposto sobre a Transmissão de Bens Imóveis.', component: ITBICalculator },
+        { id: 'reajuste-aluguel', name: 'Cálculo de Reajuste de Aluguel', description: 'Calcule o novo valor do aluguel com base nos índices IGP-M ou IPCA.', component: ReajusteAluguelCalculator },
+        { id: 'aluguel-proporcional', name: 'Cálculo de Aluguel Proporcional', description: 'Calcule o valor do aluguel a ser pago em meses com entrada ou saída no meio do período.', component: AluguelProporcionalCalculator },
     ],
   },
   {

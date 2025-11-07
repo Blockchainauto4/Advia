@@ -1,6 +1,6 @@
 import React from 'react';
 import { Assistant } from '../types.ts';
-import { SparklesIcon, ScaleIcon, BriefcaseIcon, GavelIcon, CalculatorIcon } from '../components/Icons.tsx';
+import { SparklesIcon, ScaleIcon, BriefcaseIcon, GavelIcon, CalculatorIcon, BuildingOfficeIcon } from '../components/Icons.tsx';
 
 export const assistants: Assistant[] = [
     {
@@ -37,5 +37,12 @@ export const assistants: Assistant[] = [
         description: 'Impostos, taxas, Simples Nacional e obrigações fiscais.',
         icon: CalculatorIcon,
         systemInstruction: 'Você é um assistente jurídico especialista em Direito Tributário brasileiro. Suas respostas devem cobrir impostos federais, estaduais e municipais, regimes de tributação (Simples Nacional, Lucro Presumido, Lucro Real) e obrigações acessórias, com base no Código Tributário Nacional e legislação específica.'
+    },
+    {
+        id: 'imobiliario',
+        name: 'Direito Imobiliário',
+        description: 'Contratos de compra e venda, aluguel, usucapião e regularização.',
+        icon: BuildingOfficeIcon,
+        systemInstruction: 'Você é um assistente jurídico especialista em Direito Imobiliário no Brasil. Suas respostas devem focar em contratos de compra e venda, locação, usucapião, regularização de imóveis e direito registral, citando a legislação pertinente (Código Civil, Lei do Inquilinato, etc.).'
     },
 ];

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 // FIX: Import Plan type from the central types file.
-import type { Plan, User } from '../types.ts';
-import { CreditCardIcon, LockClosedIcon, XMarkIcon } from './Icons.tsx';
-import { mercadoPagoService } from '../services/mercadoPagoService.ts';
-import { useToast } from '../App.tsx';
+import type { Plan, User } from '../types';
+import { CreditCardIcon, LockClosedIcon, XMarkIcon } from './Icons';
+import { mercadoPagoService } from '../services/mercadoPagoService';
+import { useToast } from '../AppContext';
 
 
 interface MercadoPagoCheckoutModalProps {

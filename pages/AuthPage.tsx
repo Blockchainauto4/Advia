@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { authService } from '../services/authService.ts';
-import { SparklesIcon, GoogleIcon, FacebookIcon, LinkedInIcon } from '../components/Icons.tsx';
-import type { User } from '../types.ts';
-import { useToast } from '../App.tsx';
+import { authService } from '../services/authService';
+import { SparklesIcon, GoogleIcon, FacebookIcon, LinkedInIcon } from '../components/Icons';
+import type { User } from '../types';
+import { useToast } from '../AppContext';
 
 
 interface AuthPageProps {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { User } from '../types';
-import { useNavigation } from '../App';
+import { useNavigation } from '../AppContext';
 import { UserCircleIcon, CreditCardIcon, Cog6ToothIcon } from '../components/Icons';
 import { ProfileSettings } from '../components/dashboard/ProfileSettings';
 import { SubscriptionManager } from '../components/dashboard/SubscriptionManager';

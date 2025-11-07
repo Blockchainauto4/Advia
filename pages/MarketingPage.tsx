@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { SocialPost, User, Campaign } from '../types.ts';
-import { useToast } from '../App.tsx';
-import { generateContentCalendar, generateSocialMediaPost, generateVideoFromPost, generateWhatsAppImage } from '../services/geminiService.ts';
-import { socialApiService } from '../services/socialApiService.ts';
-import { marketingHistoryService } from '../services/marketingHistoryService.ts';
-import { whatsappCampaignService } from '../services/whatsappCampaignService.ts';
-import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
-import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, ShareIcon, TrashIcon, VideoCameraIcon, ArrowPathIcon, WhatsAppIcon, ArrowDownTrayIcon, PaperAirplaneIcon } from '../components/Icons.tsx';
+import type { SocialPost, User, Campaign } from '../types';
+import { useToast } from '../AppContext';
+import { generateContentCalendar, generateSocialMediaPost, generateVideoFromPost, generateWhatsAppImage } from '../services/geminiService';
+import { socialApiService } from '../services/socialApiService';
+import { marketingHistoryService } from '../services/marketingHistoryService';
+import { whatsappCampaignService } from '../services/whatsappCampaignService';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, ShareIcon, TrashIcon, VideoCameraIcon, ArrowPathIcon, WhatsAppIcon, ArrowDownTrayIcon, PaperAirplaneIcon } from '../components/Icons';
 
 type Tab = 'calendar' | 'post' | 'history' | 'whatsapp' | 'whatsapp-campaign';
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { User } from '../../types';
 import { authService } from '../../services/authService';
-import { useToast } from '../../App';
+import { useToast } from '../../AppContext';
 import { UserCircleIcon } from '../Icons';
 
 interface ProfileSettingsProps {

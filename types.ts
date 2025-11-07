@@ -122,6 +122,15 @@ export interface BlogPost {
   content: React.ReactNode;
 }
 
+// News
+export interface NewsArticle {
+  title: string;
+  link: string;
+  pubDate: string;
+  description: string;
+  source: string;
+}
+
 // App-level types
 export interface ToastMessage {
   id?: number;

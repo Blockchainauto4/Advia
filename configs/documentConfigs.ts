@@ -257,4 +257,145 @@ ___________________________________
 ${data.contratada || '[Contratada]'}
     `.trim(),
   },
+  {
+    value: 'contrato_compra_venda_imovel',
+    label: 'Contrato de Compra e Venda de Imóvel',
+    fields: [
+        { id: 'vendedor', label: 'Vendedor(es)', placeholder: 'Ex: Carlos Pereira e Maria Pereira' },
+        { id: 'comprador', label: 'Comprador(es)', placeholder: 'Ex: Ana Souza' },
+        { id: 'imovel_endereco', label: 'Endereço do Imóvel', placeholder: 'Rua das Flores, 123, Bairro, Cidade-UF, CEP' },
+        { id: 'imovel_matricula', label: 'Matrícula do Imóvel', placeholder: 'Nº 98.765 do 1º Cartório de Registro de Imóveis' },
+        { id: 'valor_total', label: 'Valor Total da Venda', placeholder: 'R$ 500.000,00 (quinhentos mil reais)' },
+        { id: 'forma_pagamento', label: 'Forma de Pagamento', placeholder: 'Sinal de R$ 50.000,00 e o restante na escritura.' },
+        { id: 'localData', label: 'Local e Data', placeholder: 'Ex: Rio de Janeiro, 01 de Janeiro de 2024' },
+    ],
+    promptLabel: 'Descreva detalhes adicionais da transação',
+    promptPlaceholder: 'Ex: O imóvel será entregue livre de quaisquer ônus ou dívidas. A posse será transferida ao comprador na data da assinatura da escritura pública. Em caso de desistência, a multa será de 10% do valor do contrato...',
+    systemInstruction: `Você é um advogado especialista em direito imobiliário. Elabore as cláusulas para um contrato de compra e venda de imóvel. A resposta DEVE ser um objeto JSON com os campos "objeto", "preco_pagamento", "posse", "obrigacoes_vendedor", "obrigacoes_comprador", "clausula_penal".`,
+    responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          objeto: { type: Type.STRING, description: "Descrição detalhada do imóvel, incluindo endereço e matrícula." },
+          preco_pagamento: { type: Type.STRING, description: "Valor total do negócio e a forma como será pago (sinal, parcelas, financiamento, etc.)." },
+          posse: { type: Type.STRING, description: "Define quando o comprador receberá a posse do imóvel (na assinatura, na quitação, etc.)." },
+          obrigacoes_vendedor: { type: Type.STRING, description: "Responsabilidades do vendedor, como entregar o imóvel livre de dívidas e apresentar certidões." },
+          obrigacoes_comprador: { type: Type.STRING, description: "Responsabilidades do comprador, como realizar os pagamentos nas datas e arcar com custos de transferência." },
+          clausula_penal: { type: Type.STRING, description: "Define a multa e as consequências em caso de descumprimento do contrato por qualquer uma das partes." },
+        },
+        required: ["objeto", "preco_pagamento", "posse", "obrigacoes_vendedor", "obrigacoes_comprador", "clausula_penal"],
+    },
+    formatOutput: (data) => `
+INSTRUMENTO PARTICULAR DE COMPROMISSO DE COMPRA E VENDA DE IMÓVEL
+
+VENDEDOR(ES): ${data.vendedor || '[Nome do Vendedor]'}, [qualificação completa].
+
+COMPRADOR(ES): ${data.comprador || '[Nome do Comprador]'}, [qualificação completa].
+
+Pelo presente instrumento, as partes têm entre si justo e contratado o compromisso de compra e venda do imóvel a seguir descrito, mediante as seguintes cláusulas e condições:
+
+CLÁUSULA 1ª - DO OBJETO
+${data.objeto || '[O objeto do contrato será gerado aqui, contendo a descrição do imóvel.]'}
+PARÁGRAFO ÚNICO: O imóvel objeto do presente contrato encontra-se registrado sob a Matrícula nº ${data.imovel_matricula || '[Matrícula]'}, no competente Cartório de Registro de Imóveis.
+
+CLÁUSULA 2ª - DO PREÇO E DA FORMA DE PAGAMENTO
+O preço total da presente transação é de ${data.valor_total || '[Valor Total]'}.
+${data.preco_pagamento || '[A forma de pagamento detalhada será gerada aqui.]'}
+
+CLÁUSULA 3ª - DA POSSE
+${data.posse || '[As condições da transferência de posse serão geradas aqui.]'}
+
+CLÁUSULA 4ª - DAS OBRIGAÇÕES DO VENDEDOR
+${data.obrigacoes_vendedor || '[As obrigações do vendedor serão geradas aqui.]'}
+
+CLÁUSULA 5ª - DAS OBRIGAÇÕES DO COMPRADOR
+${data.obrigacoes_comprador || '[As obrigações do comprador serão geradas aqui.]'}
+
+CLÁUSULA 6ª - DA CLÁUSULA PENAL
+${data.clausula_penal || '[A multa por descumprimento será gerada aqui.]'}
+
+CLÁUSULA 7ª - DO FORO
+Fica eleito o foro da situação do imóvel para dirimir quaisquer dúvidas oriundas do presente contrato.
+
+E por estarem justos e contratados, assinam o presente em 2 (duas) vias de igual teor e forma.
+
+${data.localData || '[Local], [Data]'}
+
+___________________________________
+${data.vendedor || '[Vendedor(es)]'}
+
+___________________________________
+${data.comprador || '[Comprador(es)]'}
+    `.trim(),
+  },
+  {
+    value: 'contrato_locacao_residencial',
+    label: 'Contrato de Locação Residencial',
+    fields: [
+        { id: 'locador', label: 'Locador(a)', placeholder: 'Ex: Joana Martins' },
+        { id: 'locatario', label: 'Locatário(a)', placeholder: 'Ex: Pedro Costa' },
+        { id: 'imovel_endereco', label: 'Endereço do Imóvel', placeholder: 'Av. Brasil, 456, Apto 101, Cidade-UF' },
+        { id: 'valor_aluguel', label: 'Valor do Aluguel (R$)', placeholder: 'Ex: R$ 2.500,00' },
+        { id: 'prazo_locacao', label: 'Prazo da Locação (meses)', placeholder: 'Ex: 30' },
+        { id: 'garantia', label: 'Garantia', placeholder: 'Ex: Caução de 3 meses, Fiador, Seguro Fiança' },
+        { id: 'localData', label: 'Local e Data', placeholder: 'Ex: Belo Horizonte, 01 de Janeiro de 2024' },
+    ],
+    promptLabel: 'Descreva detalhes adicionais da locação',
+    promptPlaceholder: 'Ex: O imóvel é para fins estritamente residenciais. O IPTU será pago pelo locador. O reajuste será anual pelo IPCA. Multa por rescisão antecipada de 3 aluguéis...',
+    systemInstruction: `Você é um advogado especialista em direito imobiliário. Elabore as cláusulas para um contrato de locação residencial com base na Lei do Inquilinato (Lei 8.245/91). A resposta DEVE ser um objeto JSON com os campos "objeto", "prazo_vigencia", "valor_reajuste", "obrigacoes_locador", "obrigacoes_locatario", "garantia".`,
+    responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          objeto: { type: Type.STRING, description: "Descrição do imóvel locado e a finalidade da locação." },
+          prazo_vigencia: { type: Type.STRING, description: "Define o prazo de duração do contrato e as condições de renovação ou término." },
+          valor_reajuste: { type: Type.STRING, description: "Valor do aluguel, data de vencimento, forma de pagamento e o índice de reajuste anual." },
+          obrigacoes_locador: { type: Type.STRING, description: "Deveres do proprietário, como entregar o imóvel em condições de uso e pagar taxas extraordinárias." },
+          obrigacoes_locatario: { type: Type.STRING, description: "Deveres do inquilino, como pagar o aluguel em dia, zelar pelo imóvel e pagar despesas ordinárias." },
+          garantia: { type: Type.STRING, description: "Detalha a modalidade de garantia escolhida para a locação (caução, fiador, seguro fiança, etc.)." },
+        },
+        required: ["objeto", "prazo_vigencia", "valor_reajuste", "obrigacoes_locador", "obrigacoes_locatario", "garantia"],
+    },
+    formatOutput: (data) => `
+CONTRATO DE LOCAÇÃO RESIDENCIAL
+
+LOCADOR(A): ${data.locador || '[Nome do Locador]'}, [qualificação completa].
+
+LOCATÁRIO(A): ${data.locatario || '[Nome do Locatário]'}, [qualificação completa].
+
+As partes acima qualificadas, pelo presente instrumento, ajustam a locação do imóvel abaixo descrito, que se regerá pela Lei nº 8.245/91 e pelas seguintes cláusulas e condições:
+
+CLÁUSULA 1ª - DO OBJETO DA LOCAÇÃO
+${data.objeto || '[O objeto do contrato será gerado aqui, descrevendo o imóvel.]'}
+
+CLÁUSULA 2ª - DO PRAZO DE VIGÊNCIA
+O prazo da presente locação é de ${data.prazo_locacao || '[Prazo]'} meses.
+${data.prazo_vigencia || '[As condições de vigência, início e término serão geradas aqui.]'}
+
+CLÁUSULA 3ª - DO VALOR DO ALUGUEL E REAJUSTE
+O valor mensal do aluguel é de ${data.valor_aluguel || '[Valor do Aluguel]'}.
+${data.valor_reajuste || '[As condições de pagamento e reajuste anual serão geradas aqui.]'}
+
+CLÁUSULA 4ª - DAS OBRIGAÇÕES DO LOCADOR
+${data.obrigacoes_locador || '[As obrigações do locador serão geradas aqui.]'}
+
+CLÁUSULA 5ª - DAS OBRIGAÇÕES DO LOCATÁRIO
+${data.obrigacoes_locatario || '[As obrigações do locatário serão geradas aqui.]'}
+
+CLÁUSULA 6ª - DA GARANTIA
+A presente locação é garantida por meio de ${data.garantia || '[Tipo de Garantia]'}.
+${data.garantia_details || '[Os detalhes da garantia serão gerados aqui.]'}
+
+CLÁUSULA 7ª - DO FORO
+Fica eleito o foro da situação do imóvel para dirimir quaisquer dúvidas oriundas do presente contrato.
+
+E por estarem justos e contratados, assinam o presente em 2 (duas) vias de igual teor e forma.
+
+${data.localData || '[Local], [Data]'}
+
+___________________________________
+${data.locador || '[Locador(a)]'}
+
+___________________________________
+${data.locatario || '[Locatário(a)]'}
+    `.trim(),
+  },
 ];

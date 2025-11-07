@@ -1,5 +1,5 @@
 import React from 'react';
-import { useToast, useNavigation } from '../App.tsx';
+import { useToast, useNavigation } from '../AppContext';
 
 export const ContatoPage: React.FC = () => {
     const showToast = useToast();

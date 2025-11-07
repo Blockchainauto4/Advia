@@ -1,7 +1,7 @@
 import React from 'react';
-import { SparklesIcon } from '../components/Icons.tsx';
-import { calculatorCategories } from '../configs/calculatorConfigs.ts';
-import { useNavigation } from '../App.tsx';
+import { SparklesIcon } from '../components/Icons';
+import { calculatorCategories } from '../configs/calculatorConfigs';
+import { useNavigation } from '../AppContext';
 
 export const CalculadorasHubPage: React.FC = () => {
     const { navigate } = useNavigation();

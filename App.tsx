@@ -1,6 +1,6 @@
 // App.tsx
 // Fix: Remove .tsx extension from imports.
-import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { Toast } from './components/Toast';
@@ -27,14 +27,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { LeadProspectorPage } from './pages/LeadProspectorPage';
 import { ContractConsultantPage } from './pages/ContractConsultantPage';
 import { authService } from './services/authService';
-import type { User, ToastMessage, NavigationContextType } from './types';
-
-// Contexts
-export const NavigationContext = createContext<NavigationContextType | null>(null);
-export const ToastContext = createContext<(toast: Omit<ToastMessage, 'id'>) => void>(() => {});
-
-export const useNavigation = () => useContext(NavigationContext)!;
-export const useToast = () => useContext(ToastContext);
+import type { User, ToastMessage } from './types';
+import { NavigationContext, ToastContext } from './AppContext';
 
 
 const App: React.FC = () => {

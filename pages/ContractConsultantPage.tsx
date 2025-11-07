@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import type { User, GeneratedClause, NegotiationMessage } from '../types.ts';
-import { useToast } from '../App.tsx';
-import { analyzeServiceRisks, generateContractClause, simulateContractNegotiationStream } from '../services/geminiService.ts';
-import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
-import { SparklesIcon, ShieldExclamationIcon, ClipboardDocumentListIcon, ChatBubbleBottomCenterTextIcon, DocumentTextIcon, ArrowDownTrayIcon, TrashIcon, PlusIcon, PaperAirplaneIcon } from '../components/Icons.tsx';
+import type { User, GeneratedClause, NegotiationMessage } from '../types';
+import { useToast } from '../AppContext';
+import { analyzeServiceRisks, generateContractClause, simulateContractNegotiationStream } from '../services/geminiService';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import { SparklesIcon, ShieldExclamationIcon, ClipboardDocumentListIcon, ChatBubbleBottomCenterTextIcon, DocumentTextIcon, ArrowDownTrayIcon, TrashIcon, PlusIcon, PaperAirplaneIcon } from '../components/Icons';
 
 interface ContractConsultantPageProps {
     user: User | null;

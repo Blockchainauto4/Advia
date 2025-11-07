@@ -1,7 +1,7 @@
 import React from 'react';
-import { blogPosts } from '../configs/blogPosts.ts';
-import { useNavigation } from '../App.tsx';
-import { UserCircleIcon, CalendarDaysIcon } from '../components/Icons.tsx';
+import { blogPosts } from '../configs/blogPosts';
+import { useNavigation } from '../AppContext';
+import { UserCircleIcon, CalendarDaysIcon } from '../components/Icons';
 
 export const BlogPage: React.FC = () => {
     const { navigate } = useNavigation();

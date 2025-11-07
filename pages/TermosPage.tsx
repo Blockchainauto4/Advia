@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { useNavigation } from '../App.tsx';
+import { useNavigation } from '../AppContext';
 
 const InternalLink: React.FC<{href: string; children: React.ReactNode}> = ({ href, children }) => {
     const { navigate } = useNavigation();

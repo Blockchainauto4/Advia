@@ -1,6 +1,7 @@
 import React from 'react';
-import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon } from '../components/Icons.tsx';
-import { useNavigation } from '../App.tsx';
+import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon } from '../components/Icons';
+import { useNavigation } from '../AppContext';
+import { NewsSlideshow } from '../components/NewsSlideshow';
 
 export const HomePage: React.FC = () => {
     const { navigate } = useNavigation();
@@ -47,6 +48,9 @@ export const HomePage: React.FC = () => {
                 </div>
             </section>
             
+            {/* News Slideshow Section */}
+            <NewsSlideshow />
+
              {/* Why Us Section */}
             <section className="py-20 bg-white">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -100,7 +104,7 @@ export const HomePage: React.FC = () => {
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Assistentes de IA</h3>
                             <p className="text-gray-600 text-sm mb-4 flex-grow">
-                                Converse com IAs especializadas em Direito Cível, Penal, Trabalhista e mais. Obtenha respostas rápidas e fundamentadas.
+                                Converse com IAs especializadas em Direito Cível, Penal, Trabalhista, Imobiliário e mais. Obtenha respostas rápidas e fundamentadas.
                             </p>
                             <a href="#/chat" onClick={(e) => { e.preventDefault(); navigate('#/chat'); }} className="text-indigo-600 font-semibold hover:underline">
                                 Ir para o Chat &rarr;
@@ -112,7 +116,7 @@ export const HomePage: React.FC = () => {
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Gerador de Documentos</h3>
                             <p className="text-gray-600 text-sm mb-4 flex-grow">
-                                Crie petições, contratos e pareceres em minutos. Preencha os dados e deixe a IA redigir a peça jurídica completa para você.
+                                Crie petições, pareceres e contratos (como compra e venda, locação e serviços) em minutos. Preencha os dados e deixe a IA redigir a peça jurídica para você.
                             </p>
                              <a href="#/documentos" onClick={(e) => { e.preventDefault(); navigate('#/documentos'); }} className="text-indigo-600 font-semibold hover:underline">
                                 Criar Documento &rarr;

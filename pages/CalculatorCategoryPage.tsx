@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { calculatorCategories } from '../configs/calculatorConfigs.ts';
-import type { Calculator } from '../configs/calculatorConfigs.ts';
-import { useNavigation } from '../App.tsx';
-import { ArrowLeftOnRectangleIcon } from '../components/Icons.tsx';
-import { AccessControlOverlay } from '../components/AccessControlOverlay.tsx';
-import type { User } from '../types.ts';
+import { calculatorCategories } from '../configs/calculatorConfigs';
+import type { Calculator } from '../configs/calculatorConfigs';
+import { useNavigation } from '../AppContext';
+import { ArrowLeftOnRectangleIcon } from '../components/Icons';
+import { AccessControlOverlay } from '../components/AccessControlOverlay';
+import type { User } from '../types';
 
 interface CalculatorCategoryPageProps {
   categoryId: string;

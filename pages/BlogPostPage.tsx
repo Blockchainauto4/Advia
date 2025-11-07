@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigation } from '../App';
+import { useNavigation } from '../AppContext';
 import { blogPosts } from '../configs/blogPosts';
 import { UserCircleIcon, CalendarDaysIcon, ArrowLeftOnRectangleIcon } from '../components/Icons';
 
