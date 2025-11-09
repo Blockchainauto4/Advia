@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-// Fix: Remove .tsx extension from imports.
 import { TrashIcon, SparklesIcon, PlusIcon, UserGroupIcon } from '../components/Icons';
 import { consultarPlacaVeiculo, analisarDadosVeiculo } from '../services/geminiService';
 
@@ -159,6 +157,226 @@ export const SalarioLiquidoCalculator = () => {
         </div>
     );
 };
+
+// --- NEW CALCULATOR: Aviso Prévio Proporcional ---
+export const AvisoPrevioCalculator = () => {
+    const [dataAdmissao, setDataAdmissao] = useState('');
+    const [dataDemissao, setDataDemissao] = useState('');
+    const [resultado, setResultado] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleCalculate = () => {
+        setError(null);
+        setResultado(null);
+
+        if (!dataAdmissao || !dataDemissao) {
+            setError('Preencha as datas de admissão e demissão.');
+            return;
+        }
+
+        const admissao = new Date(dataAdmissao);
+        const demissao = new Date(dataDemissao);
+
+        if (demissao < admissao) {
+            setError('A data de demissão não pode ser anterior à data de admissão.');
+            return;
+        }
+
+        // Calcula a diferença em anos completos
+        let anosCompletos = demissao.getFullYear() - admissao.getFullYear();
+        const m = demissao.getMonth() - admissao.getMonth();
+        if (m < 0 || (m === 0 && demissao.getDate() < admissao.getDate())) {
+            anosCompletos--;
+        }
+
+        // Lei 12.506/2011: 30 dias + 3 dias por ano completo, até o máximo de 90 dias (20 anos)
+        const diasAdicionais = Math.min(60, anosCompletos * 3);
+        const totalAviso = 30 + diasAdicionais;
+
+        setResultado(totalAviso);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Admissão</label>
+                    <input type="date" value={dataAdmissao} onChange={e => setDataAdmissao(e.target.value)} className="w-full p-2 bg-slate-50 border rounded-md"/>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Data de Demissão</label>
+                    <input type="date" value={dataDemissao} onChange={e => setDataDemissao(e.target.value)} className="w-full p-2 bg-slate-50 border rounded-md"/>
+                </div>
+            </div>
+            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Aviso Prévio</button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            {resultado !== null && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                    <h4 className="text-lg font-semibold text-gray-700">Dias de Aviso Prévio Devidos:</h4>
+                    <p className="font-bold text-indigo-700 text-3xl mt-2">{resultado} dias</p>
+                    <p className="text-xs text-slate-500 mt-2">(30 dias base + {(resultado - 30)} dias proporcionais)</p>
+                </div>
+            )}
+             <p className="text-xs text-slate-500 text-center italic mt-4">
+                Conforme Lei nº 12.506/2011. O aviso prévio proporcional é limitado a 90 dias.
+            </p>
+        </div>
+    );
+};
+
+// --- NEW CALCULATOR: Devolução em Dobro (CDC) ---
+export const DevolucaoDobroCalculator = () => {
+    const [valorCobrado, setValorCobrado] = useState('');
+    const [resultado, setResultado] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const handleCalculate = () => {
+        setError(null);
+        const valor = parseFloat(valorCobrado);
+
+        if (isNaN(valor) || valor <= 0) {
+            setError('Por favor, insira um valor válido pago indevidamente.');
+            return;
+        }
+
+        setResultado(valor * 2);
+    };
+
+    return (
+        <div className="space-y-6">
+             <div>
+                <label htmlFor="valorCobrado" className="block text-sm font-medium text-gray-700 mb-1">Valor Pago Indevidamente (R$)</label>
+                <input
+                    type="number"
+                    id="valorCobrado"
+                    value={valorCobrado}
+                    onChange={e => setValorCobrado(e.target.value)}
+                    placeholder="Ex: 150.00"
+                    className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md"
+                />
+            </div>
+            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Repetição de Indébito</button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            {resultado !== null && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                    <h4 className="text-lg font-semibold text-gray-700">Valor a Restituir em Dobro:</h4>
+                    <p className="font-bold text-indigo-700 text-2xl mt-2">{formatCurrency(resultado)}</p>
+                    <p className="text-xs text-slate-500 mt-1">+ correção monetária e juros legais (a depender da data do pagamento).</p>
+                </div>
+            )}
+            <p className="text-xs text-slate-500 text-center italic mt-4">
+                Baseado no Parágrafo único do Art. 42 do Código de Defesa do Consumidor. Aplica-se apenas a valores efetivamente pagos.
+            </p>
+        </div>
+    );
+};
+
+// --- NEW CALCULATOR: Simples Nacional Estimator ---
+export const SimplesNacionalCalculator = () => {
+    const [receitaBruta12Meses, setReceitaBruta12Meses] = useState('');
+    const [receitaMensal, setReceitaMensal] = useState('');
+    const [resultado, setResultado] = useState<{ aliquotaEfetiva: number, valorDAS: number } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    // Tabela Anexo I 2024 (Comércio) - Simplificada para estimativa
+    const anexoI = [
+        { limite: 180000, aliquotaNominal: 0.04, deducao: 0 },
+        { limite: 360000, aliquotaNominal: 0.073, deducao: 5940 },
+        { limite: 720000, aliquotaNominal: 0.095, deducao: 13860 },
+        { limite: 1800000, aliquotaNominal: 0.107, deducao: 22500 },
+        { limite: 3600000, aliquotaNominal: 0.143, deducao: 87300 },
+        { limite: 4800000, aliquotaNominal: 0.19, deducao: 378000 },
+    ];
+
+    const handleCalculate = () => {
+        setError(null);
+        const rbt12 = parseFloat(receitaBruta12Meses);
+        const rpa = parseFloat(receitaMensal);
+
+        if (isNaN(rbt12) || isNaN(rpa) || rbt12 < 0 || rpa < 0) {
+            setError('Insira valores válidos para as receitas.');
+            return;
+        }
+
+        if (rbt12 > 4800000) {
+             setError('A receita bruta anual excede o limite do Simples Nacional (R$ 4.8 milhões).');
+             return;
+        }
+
+        // Encontra a faixa
+        const faixa = anexoI.find(f => rbt12 <= f.limite);
+        if (!faixa) {
+             setError('Erro ao determinar a faixa de tributação.');
+             return;
+        }
+
+        // Fórmula da Alíquota Efetiva: (RBT12 * AliqNominal - Dedução) / RBT12
+        // Para a 1ª faixa, a alíquota é fixa em 4% se RBT12 > 0. Se RBT12 for 0 (empresa nova), usa-se a receita mensal anualizada para estimar a faixa.
+        let aliquotaEfetiva = 0;
+        if (rbt12 > 0) {
+             aliquotaEfetiva = ((rbt12 * faixa.aliquotaNominal) - faixa.deducao) / rbt12;
+        } else {
+             // Estimativa para início de atividade (simplificada)
+             aliquotaEfetiva = 0.04; 
+        }
+
+        const valorDAS = rpa * aliquotaEfetiva;
+
+        setResultado({
+            aliquotaEfetiva: aliquotaEfetiva * 100,
+            valorDAS
+        });
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4">
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receita Bruta Acumulada (últimos 12 meses)</label>
+                    <input
+                        type="number"
+                        value={receitaBruta12Meses}
+                        onChange={e => setReceitaBruta12Meses(e.target.value)}
+                        placeholder="R$ 0,00"
+                        className="w-full px-3 py-2 bg-slate-50 border rounded-md"
+                    />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receita do Mês Atual (para cálculo do DAS)</label>
+                    <input
+                        type="number"
+                        value={receitaMensal}
+                        onChange={e => setReceitaMensal(e.target.value)}
+                        placeholder="R$ 0,00"
+                        className="w-full px-3 py-2 bg-slate-50 border rounded-md"
+                    />
+                </div>
+            </div>
+            <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Estimativa (Anexo I - Comércio)</button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            {resultado && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                    <div className="bg-white p-3 rounded-md border">
+                        <div className="text-sm text-slate-500">Alíquota Efetiva Estimada</div>
+                        <div className="font-bold text-indigo-700 text-xl">{resultado.aliquotaEfetiva.toFixed(2)}%</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-md border">
+                        <div className="text-sm text-slate-500">Valor Estimado do DAS</div>
+                        <div className="font-bold text-green-700 text-xl">{formatCurrency(resultado.valorDAS)}</div>
+                    </div>
+                </div>
+            )}
+             <p className="text-xs text-slate-500 text-center italic mt-4">
+                *Estimativa baseada no Anexo I (Comércio) vigente em 2024. Não substitui o cálculo oficial realizado pelo contador no PGDAS-D.
+            </p>
+        </div>
+    );
+};
+
 
 // --- NEW CALCULATOR for Vehicle Plate Consultation ---
 export const PlacaVeiculoCalculator = () => {

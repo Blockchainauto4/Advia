@@ -1,6 +1,5 @@
 import React from 'react';
-// Fix: Remove .ts extension from imports.
-import { BriefcaseIcon, ScaleIcon, GavelIcon, HomeIcon, CarIcon, BuildingOfficeIcon, CurrencyDollarIcon } from '../components/Icons';
+import { BriefcaseIcon, ScaleIcon, GavelIcon, HomeIcon, CarIcon, BuildingOfficeIcon, ShoppingBagIcon, BuildingStorefrontIcon } from '../components/Icons';
 import { 
     SalarioLiquidoCalculator,
     TempoDeContribuicaoCalculator,
@@ -13,6 +12,9 @@ import {
     FeriasCalculator,
     DecimoTerceiroCalculator,
     AluguelProporcionalCalculator,
+    AvisoPrevioCalculator,
+    DevolucaoDobroCalculator,
+    SimplesNacionalCalculator
 } from '../calculators/index';
 
 export interface Calculator {
@@ -40,7 +42,17 @@ export const calculatorCategories: CalculatorCategory[] = [
       { id: 'salario-liquido', name: 'Calculadora de Salário Líquido (CLT)', description: 'Calcule o salário líquido a partir do bruto, com descontos de INSS e Imposto de Renda (IRRF).', component: SalarioLiquidoCalculator },
       { id: 'calculo-ferias', name: 'Calculadora de Férias', description: 'Calcule o valor líquido das suas férias, incluindo o terço constitucional e descontos.', component: FeriasCalculator },
       { id: 'calculo-decimo-terceiro', name: 'Calculadora de 13º Salário Proporcional', description: 'Estime o valor do 13º salário com base nos meses trabalhados no ano.', component: DecimoTerceiroCalculator },
+      { id: 'aviso-previo', name: 'Calculadora de Aviso Prévio Proporcional', description: 'Calcule a quantidade exata de dias de aviso prévio com base no tempo de serviço (Lei 12.506/2011).', component: AvisoPrevioCalculator },
     ],
+  },
+  {
+      id: 'consumidor',
+      title: 'Direito do Consumidor',
+      description: 'Ferramentas para cálculos de indenizações, repetição de indébito e correções.',
+      icon: React.createElement(ShoppingBagIcon, { className: "w-8 h-8" }),
+      calculators: [
+          { id: 'devolucao-dobro', name: 'Calculadora de Devolução em Dobro (Art. 42 CDC)', description: 'Calcule o valor a ser restituído em dobro em casos de cobrança indevida paga.', component: DevolucaoDobroCalculator },
+      ],
   },
   {
     id: 'previdenciario',
@@ -49,6 +61,15 @@ export const calculatorCategories: CalculatorCategory[] = [
     icon: React.createElement(HomeIcon, { className: "w-8 h-8" }),
     calculators: [
         { id: 'tempo-contribuicao', name: 'Cálculo de Tempo de Contribuição', description: 'Some diferentes períodos de trabalho para saber seu tempo total de contribuição.', component: TempoDeContribuicaoCalculator },
+    ],
+  },
+  {
+    id: 'empresarial',
+    title: 'Empresarial / Tributário',
+    description: 'Estimativas de tributos e cálculos para planejamento empresarial.',
+    icon: React.createElement(BuildingStorefrontIcon, { className: "w-8 h-8" }),
+    calculators: [
+        { id: 'simples-nacional', name: 'Estimativa Simples Nacional (Anexo I - Comércio)', description: 'Estime a alíquota efetiva e o valor do DAS para empresas de comércio com base na receita bruta.', component: SimplesNacionalCalculator },
     ],
   },
   {
