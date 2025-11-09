@@ -2,7 +2,7 @@
 // Fix: Add import for GoogleGenAI and related types.
 import { GoogleGenAI, GenerateContentRequest, Part, Type, GenerateContentResponse } from '@google/genai';
 // Fix: Import types from the central types file.
-import type { SocialPost, SafetyEvent, Lead } from '../types';
+import type { SocialPost, SafetyEvent, Lead, SeoData } from '../types';
 
 const getAI = () => {
     // FIX: Add a check for the API key to prevent crashes. The key is expected to be in environment variables.
@@ -162,6 +162,33 @@ export const consultarCnpj = async (cnpj: string) => {
         throw new Error(errorData.message || 'Erro ao consultar CNPJ.');
     }
     return response.json();
+};
+
+export const findEmailPatterns = async (name: string, domain: string): Promise<string[]> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const systemInstruction = "Atue como um especialista em OSINT (Open Source Intelligence). Seu objetivo é deduzir padrões de e-mail corporativo prováveis com base em nomes e domínios.";
+    
+    const prompt = `Com base no nome "${name}" e no domínio da empresa "${domain}", gere uma lista dos 5 formatos de e-mail corporativo mais prováveis que essa pessoa poderia ter. Ordene do mais comum para o menos comum. Retorne APENAS um array JSON de strings. Exemplo de entrada: Nome "João Silva", Domínio "empresa.com.br". Exemplo de saída: ["joao.silva@empresa.com.br", "jsilva@empresa.com.br", ...]`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
+        });
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Error finding email patterns:", error);
+        return [];
+    }
 };
 
 // --- Marketing ---
@@ -343,6 +370,33 @@ export const generateWhatsAppImage = async (toolName: string, toolDescription: s
     throw new Error("Nenhuma imagem foi gerada.");
 };
 
+export const analyzeSeoData = async (data: SeoData): Promise<string> => {
+    const ai = getAI();
+    const model = 'gemini-2.5-flash';
+    const systemInstruction = `Você é um consultor de SEO especialista no nicho jurídico. Analise os dados fornecidos e gere um resumo com insights e 3 a 5 sugestões práticas e acionáveis para um advogado ou escritório de advocacia melhorar sua presença online. Seja direto e foque em ações que o próprio advogado possa tomar. Use markdown para formatação (títulos com '###', listas com '*').`;
+
+    const prompt = `
+    Aqui estão os dados de SEO de um site jurídico:
+    - Pontuação de Autoridade: ${data.authorityScore}
+    - Tráfego Orgânico Mensal: ${data.organicTraffic}
+    - Palavras-chave no Top 10: ${data.topKeywords}
+    - Backlinks: ${data.backlinks}
+    - Visibilidade em IA: ${data.aiVisibility.visibility}%
+    - Principais Palavras-chave: ${data.topOrganicKeywords.map(k => `"${k.keyword}" (Posição ${k.position})`).join(', ')}
+
+    Com base nesses dados, forneça uma análise e sugestões práticas em markdown.
+    `;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: { systemInstruction },
+    });
+
+    return response.text;
+};
+
+
 // --- Safety Camera ---
 export const analyzeVideoFramesForSafety = async (frames: Part[]): Promise<{ events: Omit<SafetyEvent, 'timestamp' | 'frameDataUrl'>[] }> => {
     const ai = getAI();
@@ -471,60 +525,70 @@ export const findLeadsOnGoogleMaps = async (query: string, location: { latitude:
     const ai = getAI();
     const model = 'gemini-2.5-flash';
     
+    // Prompt aprimorado para solicitar formato estruturado no texto da resposta
+    const prompt = `Encontre empresas que correspondem a "${query}" perto da localização atual.
+Liste as empresas encontradas. Para CADA uma, você DEVE fornecer os detalhes no seguinte formato estrito, separados por "---":
+
+---
+Nome: [Nome exato da empresa]
+Endereço: [Endereço completo]
+Telefone: [Número de telefone ou "N/A" se não encontrar]
+Website: [URL do website ou "N/A" se não encontrar]
+---
+
+Certifique-se de incluir Telefone e Website sempre que estiverem disponíveis nos dados do mapa ou publicamente.`;
+
     const response = await ai.models.generateContent({
         model,
-        contents: `Encontre empresas que correspondem a "${query}" perto da localização atual. Para cada empresa, forneça o nome, endereço, telefone, website e URL do Google Maps.`,
+        contents: prompt,
         config: {
             tools: [{ googleMaps: {} }],
             toolConfig: { retrievalConfig: { latLng: location } },
         },
     });
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const leads: Lead[] = groundingChunks
-        .filter(chunk => chunk.maps)
-        .map((chunk, index) => ({
-            id: chunk.maps.placeId || `maps_${Date.now()}_${index}`,
-            name: chunk.maps.title,
-            address: chunk.maps.subtitle,
-            mapsUrl: chunk.maps.uri,
-            status: 'Novo',
-            createdAt: new Date().toISOString(),
-        }));
-        
-    // The text part might contain additional info like phone or website
-    const textLeads = parseLeadsFromText(response.text);
-    
-    // Combine and deduplicate
-    const allLeads = [...leads, ...textLeads];
-    const uniqueLeads = Array.from(new Map(allLeads.map(lead => [lead.name, lead])).values());
-    
-    return uniqueLeads;
+    // Usa o parser atualizado para extrair os dados estruturados do texto
+    return parseLeadsFromText(response.text);
 };
 
 function parseLeadsFromText(text: string): Lead[] {
-    // This is a simplistic parser. A more robust solution might be needed.
     const leads: Lead[] = [];
-    const businesses = text.split('---'); // Assuming the model separates entries with '---'
-    businesses.forEach((bizText, index) => {
-        const nameMatch = bizText.match(/Nome:\s*(.*)/);
-        const addressMatch = bizText.match(/Endereço:\s*(.*)/);
-        const phoneMatch = bizText.match(/Telefone:\s*(.*)/);
-        const websiteMatch = bizText.match(/Website:\s*(.*)/);
+    // Separa por '---' e filtra seções vazias
+    const sections = text.split('---').map(s => s.trim()).filter(s => s.length > 0);
 
-        if (nameMatch) {
-            leads.push({
-                id: `text_${Date.now()}_${index}`,
-                name: nameMatch[1].trim(),
-                address: addressMatch ? addressMatch[1].trim() : undefined,
-                phone: phoneMatch ? phoneMatch[1].trim() : undefined,
-                website: websiteMatch ? websiteMatch[1].trim() : undefined,
+    sections.forEach((section, index) => {
+        // Função auxiliar para extrair valor baseado na chave
+        const extract = (key: string) => {
+            const match = section.match(new RegExp(`${key}:\\s*(.+)`, 'i'));
+            return match ? match[1].trim() : undefined;
+        };
+
+        const name = extract('Nome');
+        // Validação básica para garantir que é uma seção de lead válida
+        if (name && name.length < 150 && !name.startsWith('[')) {
+             let phone = extract('Telefone');
+             let website = extract('Website');
+             const address = extract('Endereço');
+
+             // Limpa valores "N/A" ou similares
+             if (phone && (phone.toUpperCase() === 'N/A' || phone.toLowerCase().includes('não'))) phone = undefined;
+             if (website && (website.toUpperCase() === 'N/A' || website.toLowerCase().includes('não'))) website = undefined;
+
+             leads.push({
+                id: `lead_${Date.now()}_${index}`,
+                name: name.replace(/\*\*/g, ''), // Remove negrito do markdown se presente
+                address: address?.replace(/\*\*/g, ''),
+                phone: phone?.replace(/\*\*/g, ''),
+                website: website?.replace(/\*\*/g, ''),
                 status: 'Novo',
                 createdAt: new Date().toISOString(),
             });
         }
     });
-    return leads;
+
+    // Deduplicação básica por nome
+    const uniqueLeads = Array.from(new Map(leads.map(lead => [lead.name, lead])).values());
+    return uniqueLeads;
 }
 
 export const generateLeadProposal = async (lead: Lead, serviceDescription: string): Promise<string> => {

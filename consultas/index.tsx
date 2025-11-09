@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { consultarCep, consultarCnpj } from '../services/geminiService.ts';
+import { consultarCep, consultarCnpj, findEmailPatterns } from '../services/geminiService.ts';
+import { ClipboardIcon, CheckCircleIcon } from '../components/Icons.tsx';
 
 const LoadingButtonContent: React.FC<{text: string}> = ({ text }) => (
     <>
@@ -181,6 +182,107 @@ export const CnpjConsultor = () => {
                            <ResultItem label="UF" value={resultado.uf} />
                         </div>
                     </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- NEW COMPONENT for Email Finder ---
+export const EmailFinder = () => {
+    const [name, setName] = useState('');
+    const [domain, setDomain] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [results, setResults] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+    const handleSearch = async () => {
+        if (!name.trim() || !domain.trim()) {
+            setError('Por favor, preencha o nome completo e o domínio da empresa.');
+            return;
+        }
+        // Basic domain validation
+        if (!domain.includes('.') || domain.includes('@')) {
+             setError('Insira um domínio válido (ex: empresa.com.br).');
+             return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        setResults([]);
+
+        try {
+            const emails = await findEmailPatterns(name, domain);
+            setResults(emails);
+        } catch (err) {
+            setError('Não foi possível gerar os padrões de e-mail. Tente novamente.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCopy = (email: string, index: number) => {
+        navigator.clipboard.writeText(email);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="personName" className="block text-sm font-medium text-gray-700 mb-1">Nome da Pessoa</label>
+                    <input 
+                        type="text" 
+                        id="personName" 
+                        value={name} 
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Ex: João da Silva" 
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="companyDomain" className="block text-sm font-medium text-gray-700 mb-1">Domínio da Empresa</label>
+                    <input 
+                        type="text" 
+                        id="companyDomain" 
+                        value={domain} 
+                        onChange={e => setDomain(e.target.value.toLowerCase().replace(/https?:\/\//, '').replace('/', ''))}
+                        placeholder="Ex: advocacia.com.br" 
+                        className="w-full px-3 py-2 text-gray-900 bg-slate-50 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+            </div>
+            <button 
+                onClick={handleSearch} 
+                disabled={isLoading}
+                className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+                {isLoading ? <LoadingButtonContent text="Buscando padrões..." /> : 'Encontrar E-mails Prováveis'}
+            </button>
+            {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
+            
+            {results.length > 0 && (
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-3">E-mails Prováveis (baseado em padrões comuns)</h4>
+                    <ul className="space-y-2">
+                        {results.map((email, index) => (
+                            <li key={index} className="flex items-center justify-between bg-white p-3 rounded-md border">
+                                <span className="font-mono text-sm text-slate-700 truncate mr-2">{email}</span>
+                                <button 
+                                    onClick={() => handleCopy(email, index)} 
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors"
+                                    title="Copiar e-mail"
+                                >
+                                    {copiedIndex === index ? <CheckCircleIcon className="w-5 h-5 text-green-500" /> : <ClipboardIcon className="w-5 h-5" />}
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="text-xs text-slate-500 italic mt-3">
+                        Nota: Estes e-mails são gerados por IA com base em padrões comuns (ex: nome.sobrenome@dominio.com). Eles não são verificados e podem não ser ativos.
+                    </p>
                 </div>
             )}
         </div>

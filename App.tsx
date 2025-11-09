@@ -26,6 +26,7 @@ import { PoliticaReembolsoPage } from './pages/PoliticaReembolsoPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LeadProspectorPage } from './pages/LeadProspectorPage';
 import { ContractConsultantPage } from './pages/ContractConsultantPage';
+import { DecimoTerceiroPage } from './pages/DecimoTerceiroPage';
 import { authService } from './services/authService';
 import type { User, ToastMessage } from './types';
 import { NavigationContext, ToastContext } from './AppContext';
@@ -34,7 +35,15 @@ import { NavigationContext, ToastContext } from './AppContext';
 const App: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
-    const [currentPath, setCurrentPath] = useState(window.location.hash || '#/home');
+    // Initialize currentPath safely
+    const getInitialPath = () => {
+        try {
+            return window.location.hash || '#/home';
+        } catch (e) {
+            return '#/home';
+        }
+    };
+    const [currentPath, setCurrentPath] = useState(getInitialPath());
 
     useEffect(() => {
         const loggedInUser = authService.getCurrentUser();
@@ -43,7 +52,11 @@ const App: React.FC = () => {
         }
 
         const handleHashChange = () => {
-            setCurrentPath(window.location.hash || '#/home');
+            try {
+                setCurrentPath(window.location.hash || '#/home');
+            } catch (e) {
+                // Fallback if location.hash access fails
+            }
             window.scrollTo(0, 0);
         };
         window.addEventListener('hashchange', handleHashChange);
@@ -51,7 +64,14 @@ const App: React.FC = () => {
     }, []);
     
     const navigate = useCallback((path: string) => {
-        window.location.hash = path;
+        // Optimistically update internal state first to ensure navigation happens
+        // even if writing to location.hash is blocked by the environment.
+        setCurrentPath(path);
+        try {
+            window.location.hash = path;
+        } catch (e) {
+            console.warn("Navigation hash update blocked by environment. Relying on internal state.", e);
+        }
     }, []);
 
     const showToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
@@ -77,7 +97,11 @@ const App: React.FC = () => {
     };
 
     const renderPage = () => {
-        const [page, param, ...rest] = currentPath.substring(2).split('/');
+        // Robustly handle potential errors if currentPath is somehow malformed
+        const safePath = currentPath || '#/home';
+        const pathParts = safePath.substring(2).split('/');
+        const page = pathParts[0] || 'home';
+        const param = pathParts[1];
 
         switch (page) {
             case '':
@@ -89,6 +113,8 @@ const App: React.FC = () => {
                 return <DocumentGeneratorController user={user} />;
             case 'calculadoras':
                  return param ? <CalculatorCategoryPage categoryId={param} user={user} /> : <CalculadorasHubPage />;
+            case 'decimo-terceiro':
+                 return <DecimoTerceiroPage />;
             case 'consultas':
                 return <ConsultasPage user={user} />;
             case 'marketing':
@@ -120,7 +146,7 @@ const App: React.FC = () => {
             case 'reembolso':
                 return <PoliticaReembolsoPage />;
             default:
-                return <HomePage />; // Or a 404 page
+                return <HomePage />;
         }
     };
 

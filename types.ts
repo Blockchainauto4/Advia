@@ -78,6 +78,21 @@ export interface Campaign {
     scheduledAt?: string;
 }
 
+// SEO Analytics
+export interface SeoData {
+  authorityScore: number;
+  organicTraffic: number;
+  topKeywords: number;
+  backlinks: number;
+  aiVisibility: {
+    visibility: number;
+    mentions: number;
+    citedPages: number;
+  };
+  trafficHistory: { month: string; traffic: number }[];
+  topOrganicKeywords: { keyword: string; position: number; volume: string }[];
+}
+
 // Safety Camera
 export interface SafetyEvent {
   type: 'plate' | 'infraction' | 'info';
@@ -120,15 +135,6 @@ export interface BlogPost {
   date: string;
   excerpt: string;
   content: React.ReactNode;
-}
-
-// News
-export interface NewsArticle {
-  title: string;
-  link: string;
-  pubDate: string;
-  description: string;
-  source: string;
 }
 
 // App-level types

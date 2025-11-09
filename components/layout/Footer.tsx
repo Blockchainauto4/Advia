@@ -49,6 +49,7 @@ export const Footer: React.FC = () => {
                             <FooterLink href="#/chat">Chat IA</FooterLink>
                             <FooterLink href="#/documentos">Gerador de Documentos</FooterLink>
                             <FooterLink href="#/calculadoras">Calculadoras Jurídicas</FooterLink>
+                            <FooterLink href="#/prospeccao">Prospecção de Clientes</FooterLink>
                             <FooterLink href="#/consultas">Consultas Públicas</FooterLink>
                             <FooterLink href="#/marketing">Marketing Jurídico IA</FooterLink>
                         </ul>

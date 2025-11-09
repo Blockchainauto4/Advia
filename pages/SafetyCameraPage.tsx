@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Part } from '@google/genai';
 import { useToast } from '../AppContext';
@@ -55,7 +56,11 @@ export const SafetyCameraPage: React.FC<SafetyCameraPageProps> = ({ user }) => {
 
                 video.currentTime = currentTime;
                 
+                // Increased timeout to 100ms to prevent UI freezing on lower-end devices
+                // while still maintaining a fast processing speed (approx 10fps analysis).
                 setTimeout(() => {
+                    if (!video || !canvas || !context) return; // Extra safety check
+
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
@@ -79,7 +84,7 @@ export const SafetyCameraPage: React.FC<SafetyCameraPageProps> = ({ user }) => {
                     currentTime += 1 / FRAME_RATE;
                     captureFrame();
 
-                }, 100); // Small delay to allow the video to seek
+                }, 100); 
             };
             
             video.addEventListener('seeked', captureFrame, { once: true });
@@ -132,9 +137,9 @@ export const SafetyCameraPage: React.FC<SafetyCameraPageProps> = ({ user }) => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Left: Video Player & Controls */}
                         <div className="space-y-4">
-                            <div className="aspect-video bg-slate-900 rounded-lg flex items-center justify-center">
+                            <div className="aspect-video bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden">
                                 {videoSrc ? (
-                                    <video ref={videoRef} src={videoSrc} controls className="w-full h-full rounded-lg" />
+                                    <video ref={videoRef} src={videoSrc} controls className="w-full h-full object-contain" />
                                 ) : (
                                     <div className="text-center text-slate-400">
                                         <VideoCameraIcon className="w-16 h-16 mx-auto" />

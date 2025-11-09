@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { SocialPost, User, Campaign } from '../types';
 import { useToast } from '../AppContext';
 import { generateContentCalendar, generateSocialMediaPost, generateVideoFromPost, generateWhatsAppImage } from '../services/geminiService';
-import { socialApiService } from '../services/socialApiService';
 import { marketingHistoryService } from '../services/marketingHistoryService';
 import { whatsappCampaignService } from '../services/whatsappCampaignService';
 import { AccessControlOverlay } from '../components/AccessControlOverlay';
-import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, ShareIcon, TrashIcon, VideoCameraIcon, ArrowPathIcon, WhatsAppIcon, ArrowDownTrayIcon, PaperAirplaneIcon } from '../components/Icons';
+import { SparklesIcon, CalendarDaysIcon, DocumentTextIcon, ClockIcon, TikTokIcon, TrashIcon, VideoCameraIcon, WhatsAppIcon, ArrowDownTrayIcon, PaperAirplaneIcon } from '../components/Icons';
 
 type Tab = 'calendar' | 'post' | 'history' | 'whatsapp' | 'whatsapp-campaign';
 
@@ -178,26 +178,26 @@ const CalendarGenerator = () => {
                     </button>
                 </div>
             </div>
-            <div className="bg-slate-50 p-4 rounded-lg border min-h-[300px]">
+            <div className="bg-slate-50 p-4 rounded-lg border min-h-[300px] overflow-hidden">
                 {isLoading && <LoadingSpinner text="A IA está planejando seu conteúdo..." />}
                 {calendario && (
-                    <div className="max-h-96 overflow-y-auto">
-                        <table className="w-full text-sm">
+                    <div className="max-h-96 overflow-x-auto">
+                        <table className="w-full text-sm min-w-[600px]">
                             <thead className="bg-slate-200 sticky top-0">
                                 <tr>
-                                    <th className="p-2 text-left">Dia</th>
+                                    <th className="p-2 text-left whitespace-nowrap">Dia</th>
                                     <th className="p-2 text-left">Tema</th>
-                                    <th className="p-2 text-left">Formato</th>
+                                    <th className="p-2 text-left whitespace-nowrap">Formato</th>
                                     <th className="p-2 text-left">CTA</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {calendario.map(item => (
                                     <tr key={item.dia} className="border-b">
-                                        <td className="p-2 font-bold">{item.dia}</td>
+                                        <td className="p-2 font-bold text-center">{item.dia}</td>
                                         <td className="p-2">{item.tema}</td>
-                                        <td className="p-2">{item.formato}</td>
-                                        <td className="p-2">{item.cta}</td>
+                                        <td className="p-2 whitespace-nowrap">{item.formato}</td>
+                                        <td className="p-2 min-w-[150px]">{item.cta}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -427,21 +427,21 @@ const WhatsAppCampaigns = () => {
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                     {campaigns.map(c => (
                         <div key={c.id} className="bg-white p-4 rounded-md border shadow-sm">
-                            <div className="flex justify-between items-start">
+                            <div className="flex justify-between items-start flex-wrap gap-2">
                                 <div>
                                     <p className="font-bold text-gray-800">{c.name}</p>
                                     <p className="text-xs text-slate-500">{c.recipientCount} destinatários</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 ml-auto">
                                     {getStatusChip(c.status)}
                                     <button onClick={() => handleDeleteCampaign(c.id)} className="text-slate-400 hover:text-red-500"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             </div>
-                            <p className="text-sm text-slate-600 my-2 p-2 bg-slate-50 rounded border whitespace-pre-wrap">{c.messageTemplate}</p>
-                            <div className="text-xs text-slate-500 flex justify-between items-center">
-                                <span>Agendado para: {c.scheduledAt ? new Date(c.scheduledAt).toLocaleString('pt-BR') : 'Imediato'}</span>
+                            <p className="text-sm text-slate-600 my-2 p-2 bg-slate-50 rounded border whitespace-pre-wrap break-words">{c.messageTemplate}</p>
+                            <div className="text-xs text-slate-500 flex justify-between items-center flex-wrap gap-2">
+                                <span>Agendado: {c.scheduledAt ? new Date(c.scheduledAt).toLocaleString('pt-BR') : 'Imediato'}</span>
                                 {c.status === 'draft' && (
-                                    <button onClick={() => handleSendCampaign(c.id)} className="flex items-center text-sm bg-green-500 text-white font-semibold px-3 py-1 rounded-md hover:bg-green-600">
+                                    <button onClick={() => handleSendCampaign(c.id)} className="flex items-center text-sm bg-green-500 text-white font-semibold px-3 py-1 rounded-md hover:bg-green-600 ml-auto">
                                         <PaperAirplaneIcon className="w-4 h-4 mr-1"/> Enviar Agora
                                     </button>
                                 )}
@@ -528,11 +528,12 @@ const PostDisplay: React.FC<{post: SocialPost; setPost: (post: SocialPost) => vo
             if (post && post.platform.includes('TikTok')) {
                 setIsCheckingApiKey(true);
                 try {
-                    if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-                        const hasKey = await window.aistudio.hasSelectedApiKey();
+                    const aistudio = (window as any).aistudio;
+                    if (aistudio && typeof aistudio.hasSelectedApiKey === 'function') {
+                        const hasKey = await aistudio.hasSelectedApiKey();
                         setIsApiKeySelected(hasKey);
                     } else {
-                        console.warn("aistudio API not found.");
+                        // Fallback if window.aistudio is not available in the environment
                         setIsApiKeySelected(false);
                     }
                 } catch (e) {
@@ -549,8 +550,13 @@ const PostDisplay: React.FC<{post: SocialPost; setPost: (post: SocialPost) => vo
     }, [post]);
 
     const handleSelectKey = async () => {
+        const aistudio = (window as any).aistudio;
+        if (!aistudio) {
+             showToast({ type: 'error', message: 'Ambiente não suporta seleção de chave API.' });
+             return;
+        }
         try {
-            await window.aistudio.openSelectKey();
+            await aistudio.openSelectKey();
             setIsApiKeySelected(true);
             showToast({ type: 'info', message: 'Chave API selecionada. Tente gerar o vídeo novamente.' });
         } catch (e) {

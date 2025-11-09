@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 // Fix: Remove .tsx extension from imports.
 import { TrashIcon, SparklesIcon, PlusIcon, UserGroupIcon } from '../components/Icons';
@@ -92,7 +93,7 @@ export const SalarioLiquidoCalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="salarioBrutoCLT" className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto Mensal (R$)</label>
                     <input
@@ -241,11 +242,11 @@ export const PlacaVeiculoCalculator = () => {
             {resultado && (
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
                     <h4 className="text-lg font-semibold text-gray-800 border-b pb-2">Dados do Veículo</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {Object.entries(resultado[0]).map(([key, value]) => (
                             <div key={key} className="bg-white p-2 rounded-md border text-sm">
                                 <span className="block text-xs text-slate-500">{key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}</span>
-                                <span className="font-bold">{String(value)}</span>
+                                <span className="font-bold break-all">{String(value)}</span>
                             </div>
                         ))}
                     </div>
@@ -311,8 +312,15 @@ export const TempoDeContribuicaoCalculator = () => {
                 setError('Preencha todas as datas de início e fim.');
                 return;
             }
-            const dataInicio = new Date(periodo.inicio);
-            const dataFim = new Date(periodo.fim);
+            // Ensure midnight time to avoid timezone shifts affecting the day
+            const dataInicio = new Date(periodo.inicio + 'T12:00:00');
+            const dataFim = new Date(periodo.fim + 'T12:00:00');
+            
+            if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+                 setError('Datas inválidas.');
+                 return;
+            }
+
             if (dataFim < dataInicio) {
                 setError(`A data final (${periodo.fim}) não pode ser anterior à data inicial (${periodo.inicio}).`);
                 return;
@@ -333,18 +341,18 @@ export const TempoDeContribuicaoCalculator = () => {
     return (
         <div className="space-y-6">
             {periodos.map((p, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 border rounded-md">
-                    <div className="flex-grow grid grid-cols-2 gap-2">
+                <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 border rounded-md bg-white">
+                    <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                         <div>
                             <label className="block text-xs font-medium text-gray-700">Data de Início</label>
-                            <input type="date" value={p.inicio} onChange={e => handlePeriodoChange(index, 'inicio', e.target.value)} className="w-full px-2 py-1 text-sm bg-slate-50 border-slate-300 rounded-md" />
+                            <input type="date" value={p.inicio} onChange={e => handlePeriodoChange(index, 'inicio', e.target.value)} className="w-full px-2 py-2 text-sm bg-slate-50 border-slate-300 rounded-md" />
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-gray-700">Data de Fim</label>
-                            <input type="date" value={p.fim} onChange={e => handlePeriodoChange(index, 'fim', e.target.value)} className="w-full px-2 py-1 text-sm bg-slate-50 border-slate-300 rounded-md" />
+                            <input type="date" value={p.fim} onChange={e => handlePeriodoChange(index, 'fim', e.target.value)} className="w-full px-2 py-2 text-sm bg-slate-50 border-slate-300 rounded-md" />
                         </div>
                     </div>
-                    <button onClick={() => removePeriodo(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-full" aria-label="Remover período"><TrashIcon className="w-5 h-5"/></button>
+                    <button onClick={() => removePeriodo(index)} className="p-2 text-red-500 hover:bg-red-100 rounded-full self-end sm:self-center" aria-label="Remover período"><TrashIcon className="w-5 h-5"/></button>
                 </div>
             ))}
             <button onClick={addPeriodo} className="w-full flex items-center justify-center text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-md transition-colors">
@@ -389,7 +397,7 @@ export const PrazosProcessuaisCalculator = () => {
             return;
         }
         
-        let dataFinal = new Date(dataInicio + 'T12:00:00Z'); // Avoid timezone issues
+        let dataFinal = new Date(dataInicio + 'T12:00:00'); // Avoid timezone issues by setting noon
         const prazoDias = parseInt(dias);
         
         if (tipoPrazo === 'corridos') {
@@ -411,7 +419,7 @@ export const PrazosProcessuaisCalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
                     <label htmlFor="dataInicioPrazo" className="block text-sm font-medium text-gray-700 mb-1">Data de Início do Prazo</label>
                     <input type="date" id="dataInicioPrazo" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md" />
@@ -423,9 +431,9 @@ export const PrazosProcessuaisCalculator = () => {
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Contagem</label>
-                <div className="flex space-x-4">
-                    <label className="flex items-center"><input type="radio" value="uteis" checked={tipoPrazo === 'uteis'} onChange={() => setTipoPrazo('uteis')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2">Dias Úteis</span></label>
-                    <label className="flex items-center"><input type="radio" value="corridos" checked={tipoPrazo === 'corridos'} onChange={() => setTipoPrazo('corridos')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2">Dias Corridos</span></label>
+                <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center"><input type="radio" value="uteis" checked={tipoPrazo === 'uteis'} onChange={() => setTipoPrazo('uteis')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2 text-sm">Dias Úteis</span></label>
+                    <label className="flex items-center"><input type="radio" value="corridos" checked={tipoPrazo === 'corridos'} onChange={() => setTipoPrazo('corridos')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2 text-sm">Dias Corridos</span></label>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular Data Final</button>
@@ -476,7 +484,7 @@ export const JurosCalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label htmlFor="principal" className="block text-sm font-medium text-gray-700 mb-1">Valor Principal (R$)</label>
                     <input type="number" id="principal" value={principal} onChange={e => setPrincipal(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border rounded-md" />
@@ -492,15 +500,15 @@ export const JurosCalculator = () => {
             </div>
             <div>
                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Juros</label>
-                <div className="flex space-x-4">
-                    <label className="flex items-center"><input type="radio" value="simples" checked={tipoJuros === 'simples'} onChange={() => setTipoJuros('simples')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2">Juros Simples</span></label>
-                    <label className="flex items-center"><input type="radio" value="composto" checked={tipoJuros === 'composto'} onChange={() => setTipoJuros('composto')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2">Juros Compostos</span></label>
+                <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center"><input type="radio" value="simples" checked={tipoJuros === 'simples'} onChange={() => setTipoJuros('simples')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2 text-sm">Juros Simples</span></label>
+                    <label className="flex items-center"><input type="radio" value="composto" checked={tipoJuros === 'composto'} onChange={() => setTipoJuros('composto')} className="h-4 w-4 text-indigo-600"/> <span className="ml-2 text-sm">Juros Compostos</span></label>
                 </div>
             </div>
             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular</button>
             {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
             {resultado && (
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-2 gap-4 text-center">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                     <div className="bg-white p-3 rounded-md border">
                         <div className="text-sm text-slate-500">Juros Total</div>
                         <div className="font-bold text-red-600 text-lg">{formatCurrency(resultado.jurosTotal)}</div>
@@ -543,7 +551,7 @@ export const ProgressaoRegimeCalculator = () => {
         const totalDiasPena = (a * 365) + (m * 30) + d;
         const diasParaProgredir = Math.ceil(totalDiasPena * (p / 100));
         
-        let dataResultado = new Date(dataInicio + 'T12:00:00Z');
+        let dataResultado = new Date(dataInicio + 'T12:00:00');
         dataResultado.setDate(dataResultado.getDate() + diasParaProgredir - 1); // -1 as start date is day 1
 
         setResultado(dataResultado.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }));
@@ -559,7 +567,7 @@ export const ProgressaoRegimeCalculator = () => {
                     <input type="number" placeholder="Dias" value={dias} onChange={e => setDias(e.target.value)} className="w-full p-2 bg-slate-50 border rounded-md" />
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="dataInicioPena" className="block text-sm font-medium text-gray-700 mb-1">Início do Cumprimento</label>
                     <input type="date" id="dataInicioPena" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full p-2 bg-slate-50 border rounded-md" />
@@ -618,7 +626,7 @@ export const ITBICalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="valorImovel" className="block text-sm font-medium text-gray-700 mb-1">Valor do Imóvel (R$)</label>
                     <input
@@ -688,7 +696,7 @@ export const ReajusteAluguelCalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="valorAtualAluguel" className="block text-sm font-medium text-gray-700 mb-1">Valor Atual do Aluguel (R$)</label>
                     <input
@@ -808,7 +816,7 @@ export const FeriasCalculator = () => {
     
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto Mensal (R$)</label>
                     <input type="number" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 3000" className="w-full p-2 border rounded-md bg-slate-50 border-slate-300"/>
@@ -849,7 +857,7 @@ export const FeriasCalculator = () => {
     );
 };
 
-// --- NEW CALCULATOR for 13th Salary ---
+// --- UPDATED CALCULATOR for 13th Salary with Installments ---
 export const DecimoTerceiroCalculator = () => {
     const [salarioBruto, setSalarioBruto] = useState('');
     const [mesesTrabalhados, setMesesTrabalhados] = useState('12');
@@ -891,16 +899,19 @@ export const DecimoTerceiroCalculator = () => {
         }
         descontoIRRF = parseFloat(Math.max(0, descontoIRRF).toFixed(2));
         
-        const decimoTerceiroLiquido = decimoTerceiroBruto - descontoINSS - descontoIRRF;
+        // Installments
+        const primeiraParcela = decimoTerceiroBruto / 2;
+        const segundaParcela = decimoTerceiroBruto - primeiraParcela - descontoINSS - descontoIRRF;
+        const totalLiquido = primeiraParcela + segundaParcela;
 
-        setResultado({ decimoTerceiroBruto, descontoINSS, descontoIRRF, decimoTerceiroLiquido });
+        setResultado({ decimoTerceiroBruto, descontoINSS, descontoIRRF, totalLiquido, primeiraParcela, segundaParcela });
     };
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto Mensal (R$)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Salário Bruto (R$)</label>
                     <input type="number" value={salarioBruto} onChange={e => setSalarioBruto(e.target.value)} placeholder="Ex: 3000" className="w-full p-2 border rounded-md bg-slate-50 border-slate-300"/>
                 </div>
                 <div>
@@ -908,23 +919,39 @@ export const DecimoTerceiroCalculator = () => {
                     <input type="number" value={mesesTrabalhados} onChange={e => setMesesTrabalhados(e.target.value)} max="12" min="1" className="w-full p-2 border rounded-md bg-slate-50 border-slate-300"/>
                 </div>
             </div>
-             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700">Calcular 13º Salário</button>
+             <button onClick={handleCalculate} className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-md hover:bg-indigo-700 transition-colors">Calcular 13º Salário</button>
              {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
              {resultado && (
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                     <h4 className="text-lg font-semibold text-gray-800 mb-3">Demonstrativo do 13º:</h4>
-                     <ul className="space-y-1 text-sm">
-                        <li className="flex justify-between p-2 bg-white rounded-md border"><span className="text-slate-600">13º Salário Bruto</span><span className="font-bold text-green-700">{formatCurrency(resultado.decimoTerceiroBruto)}</span></li>
-                        <li className="flex justify-between p-2 bg-white rounded-md border"><span className="text-slate-600">Desconto INSS</span><span className="font-bold text-red-600">(-) {formatCurrency(resultado.descontoINSS)}</span></li>
-                        <li className="flex justify-between p-2 bg-white rounded-md border"><span className="text-slate-600">Desconto IRRF</span><span className="font-bold text-red-600">(-) {formatCurrency(resultado.descontoIRRF)}</span></li>
-                         <li className="flex justify-between items-center p-3 bg-indigo-100 rounded-md border-t-2 border-indigo-300 mt-2">
-                            <span className="font-bold text-indigo-800">Valor Líquido a Receber</span>
-                            <span className="font-extrabold text-xl text-indigo-800">{formatCurrency(resultado.decimoTerceiroLiquido)}</span>
-                        </li>
-                    </ul>
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                     <h4 className="text-lg font-bold text-gray-800 border-b pb-2">Resultado do Cálculo:</h4>
+                     
+                     {/* Installments Section */}
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <p className="text-sm font-semibold text-green-800 mb-1">1ª Parcela (até 30/nov)</p>
+                            <p className="text-2xl font-bold text-green-700">{formatCurrency(resultado.primeiraParcela)}</p>
+                        </div>
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                             <p className="text-sm font-semibold text-blue-800 mb-1">2ª Parcela (até 20/dez)</p>
+                             <p className="text-2xl font-bold text-blue-700">{formatCurrency(resultado.segundaParcela)}</p>
+                        </div>
+                     </div>
+
+                     {/* Detailed Breakdown */}
+                     <div className="bg-white p-3 rounded-lg border text-sm space-y-1">
+                        <div className="flex justify-between"><span className="text-slate-600">Salário Bruto Total</span><span className="font-semibold">{formatCurrency(resultado.decimoTerceiroBruto)}</span></div>
+                        <div className="flex justify-between text-red-600"><span className="text-slate-600">(-) Desconto INSS</span><span>{formatCurrency(resultado.descontoINSS)}</span></div>
+                        <div className="flex justify-between text-red-600"><span className="text-slate-600">(-) Desconto IRRF</span><span>{formatCurrency(resultado.descontoIRRF)}</span></div>
+                        <div className="flex justify-between border-t pt-2 mt-2 font-bold text-indigo-700">
+                            <span>Total Líquido a Receber</span>
+                            <span>{formatCurrency(resultado.totalLiquido)}</span>
+                        </div>
+                    </div>
                 </div>
             )}
-             <p className="text-xs text-slate-500 text-center italic mt-4">Cálculo estimado. Considera-se mês trabalhado a fração igual ou superior a 15 dias. Não inclui médias de variáveis.</p>
+             <p className="text-xs text-slate-500 text-center italic mt-4">
+                *Cálculo estimado. Considera-se mês trabalhado a fração igual ou superior a 15 dias. Não inclui médias de horas extras ou outros adicionais variáveis.
+            </p>
         </div>
     );
 };
@@ -958,7 +985,7 @@ export const AluguelProporcionalCalculator = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Valor Mensal do Aluguel (R$)</label>
                     <input type="number" value={valorAluguel} onChange={e => setValorAluguel(e.target.value)} placeholder="Ex: 2000" className="w-full p-2 border rounded-md bg-slate-50 border-slate-300"/>

@@ -18,7 +18,6 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [streamingText, setStreamingText] = useState('');
     const showToast = useToast();
 
     const currentConfig = useMemo(() => documentConfigs.find(d => d.value === docType) || documentConfigs[0], [docType]);
@@ -44,19 +43,16 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
         setIsLoading(true);
         setError(null);
         setGeneratedData(null);
-        setStreamingText('');
 
         try {
             const stream = generateDocument(prompt, currentConfig.systemInstruction, currentConfig.responseSchema);
             let jsonString = '';
             for await (const chunk of stream) {
                 jsonString += chunk;
-                setStreamingText(jsonString);
             }
             
             const parsedData = JSON.parse(jsonString.trim().replace(/^```json\n|```$/g, ''));
             setGeneratedData(parsedData);
-            setStreamingText('');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
             setGeneratedData(null);
@@ -71,7 +67,6 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
         setGeneratedData(null);
         setError(null);
         setIsLoading(false);
-        setStreamingText('');
         if (isSpeaking) {
             window.speechSynthesis.cancel();
             setIsSpeaking(false);
@@ -149,7 +144,6 @@ export const DocumentGeneratorController: React.FC<DocumentGeneratorControllerPr
             handleExportPDF={handleExportPDF}
             handleSpeak={handleSpeak}
             isSpeaking={isSpeaking}
-            streamingText={streamingText}
         />
     );
 };

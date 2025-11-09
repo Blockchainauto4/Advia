@@ -1,7 +1,6 @@
 import React from 'react';
-import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon } from '../components/Icons';
+import { SparklesIcon, DocumentTextIcon, CalculatorIcon, ChatBubbleLeftRightIcon, ClockIcon, ShieldCheckIcon, ShareIcon, ScaleIcon, MagnifyingGlassIcon } from '../components/Icons';
 import { useNavigation } from '../AppContext';
-import { NewsSlideshow } from '../components/NewsSlideshow';
 
 export const HomePage: React.FC = () => {
     const { navigate } = useNavigation();
@@ -48,9 +47,6 @@ export const HomePage: React.FC = () => {
                 </div>
             </section>
             
-            {/* News Slideshow Section */}
-            <NewsSlideshow />
-
              {/* Why Us Section */}
             <section className="py-20 bg-white">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,11 +108,23 @@ export const HomePage: React.FC = () => {
                         </div>
                         <div className="bg-white p-8 rounded-lg shadow-lg text-center flex flex-col items-center hover:shadow-xl hover:-translate-y-1 transition-all">
                             <div className="bg-indigo-100 text-indigo-600 rounded-full p-4 mb-4">
+                                <MagnifyingGlassIcon className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Prospecção de Clientes</h3>
+                            <p className="text-gray-600 text-sm mb-4 flex-grow">
+                                Encontre novos clientes potenciais na sua região usando inteligência geográfica e gere propostas comerciais personalizadas via IA.
+                            </p>
+                             <a href="#/prospeccao" onClick={(e) => { e.preventDefault(); navigate('#/prospeccao'); }} className="text-indigo-600 font-semibold hover:underline">
+                                Buscar Clientes &rarr;
+                            </a>
+                        </div>
+                        <div className="bg-white p-8 rounded-lg shadow-lg text-center flex flex-col items-center hover:shadow-xl hover:-translate-y-1 transition-all">
+                            <div className="bg-indigo-100 text-indigo-600 rounded-full p-4 mb-4">
                                 <DocumentTextIcon className="w-10 h-10" />
                             </div>
                             <h3 className="text-xl font-bold text-gray-800 mb-2">Gerador de Documentos</h3>
                             <p className="text-gray-600 text-sm mb-4 flex-grow">
-                                Crie petições, pareceres e contratos (como compra e venda, locação e serviços) em minutos. Preencha os dados e deixe a IA redigir a peça jurídica para você.
+                                Crie petições, pareceres e contratos em minutos. Preencha os dados e deixe a IA redigir a peça jurídica para você.
                             </p>
                              <a href="#/documentos" onClick={(e) => { e.preventDefault(); navigate('#/documentos'); }} className="text-indigo-600 font-semibold hover:underline">
                                 Criar Documento &rarr;
@@ -138,9 +146,9 @@ export const HomePage: React.FC = () => {
                             <div className="bg-indigo-100 text-indigo-600 rounded-full p-4 mb-4">
                                 <ShareIcon className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Marketing Jurídico com IA</h3>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">Marketing Jurídico</h3>
                             <p className="text-gray-600 text-sm mb-4 flex-grow">
-                                Crie posts, calendários de conteúdo e até vídeos para redes sociais. Engaje seu público e capte clientes de forma automatizada.
+                                Crie posts, calendários de conteúdo e vídeos para redes sociais. Engaje seu público e construa sua autoridade online.
                             </p>
                             <a href="#/marketing" onClick={(e) => { e.preventDefault(); navigate('#/marketing'); }} className="text-indigo-600 font-semibold hover:underline">
                                 Gerar Marketing &rarr;
@@ -156,18 +164,6 @@ export const HomePage: React.FC = () => {
                             </p>
                             <a href="#/consultas" onClick={(e) => { e.preventDefault(); navigate('#/consultas'); }} className="text-indigo-600 font-semibold hover:underline">
                                 Fazer Consulta &rarr;
-                            </a>
-                        </div>
-                        <div className="bg-white p-8 rounded-lg shadow-lg text-center flex flex-col items-center hover:shadow-xl hover:-translate-y-1 transition-all">
-                            <div className="bg-indigo-100 text-indigo-600 rounded-full p-4 mb-4">
-                                <SparklesIcon className="w-10 h-10" />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Ferramentas Adicionais</h3>
-                            <p className="text-gray-600 text-sm mb-4 flex-grow">
-                                Utilize nosso Conversor de Documentos e a Câmera de Segurança com IA para aumentar ainda mais sua produtividade e segurança.
-                            </p>
-                            <a href="#/calculadoras" onClick={(e) => { e.preventDefault(); navigate('#/calculadoras'); }} className="text-indigo-600 font-semibold hover:underline">
-                                Ver Todas &rarr;
                             </a>
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PlacaVeiculoCalculator } from '../calculators/index.tsx';
-import { CepConsultor, CnpjConsultor } from '../consultas/index.tsx';
-import { CarIcon, MapPinIcon, BriefcaseIcon } from '../components/Icons.tsx';
+import { CepConsultor, CnpjConsultor, EmailFinder } from '../consultas/index.tsx';
+import { CarIcon, MapPinIcon, BriefcaseIcon, AtSymbolIcon } from '../components/Icons.tsx';
 
 export interface Consulta {
   id: string;
@@ -32,5 +32,12 @@ export const consultas: Consulta[] = [
         description: 'Obtenha dados cadastrais de Pessoas Jurídicas diretamente da Receita Federal.',
         component: CnpjConsultor,
         icon: React.createElement(BriefcaseIcon, { className: "w-8 h-8" })
+    },
+    {
+        id: 'email-finder',
+        name: 'Localizador de E-mails',
+        description: 'Use a IA para deduzir padrões de e-mail corporativo prováveis com base em nome e domínio.',
+        component: EmailFinder,
+        icon: React.createElement(AtSymbolIcon, { className: "w-8 h-8" })
     }
 ];
